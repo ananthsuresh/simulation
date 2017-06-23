@@ -333,11 +333,10 @@ int main(int argc, char *argv[]) {
     argv += optind;
       double dt;
   	  int t_end;
-
       //calloc initializes all values to 0
   	  double* fp = (double*)calloc(100, sizeof(double));
   	  int* ip = (int*)calloc(100, sizeof(int));
-
+      printf("Please be only in parallel \n")
   	  ip[0] = 1;
   	  ip[2] = simTime;//Time simulation is run
   	  ip[3] = 1;
