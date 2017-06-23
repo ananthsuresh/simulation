@@ -53,7 +53,7 @@ void tm_rk(double *y,double *y0,double *dydt,double *fp,neuron_tm *nrnp,double d
 	nrnp->g_ampa = y[4]; nrnp->g_gaba = y[5];
 }
 
-int tm_ps(double **yp,double **co,double *yold,double *ynew,neuron_tm *nrnp,double *fp,double dt_full,int order_lim){
+int tm_ps(double **yp,double **co,double *yold,double *ynew,neuron_tm nrnp,double *fp,double dt_full,int order_lim){
 	int flag=0,p,nv=6;
 	double v,n,m,h,g_ampa,g_gaba,a,b,c,d,co_Na,co_K,n2,n3,n4,m2,m3,m3h,e,f,g,q,r,s;
 	double chi,psi,xi,v_alpha_n,v_alpha_m,v_beta_m,alpha_n,alpha_m,beta_m,eta[NV];
@@ -115,7 +115,8 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
   double tol=fp_in[9], dt_rk=fp_in[10], dt_ps=fp_in[11];
   double dt,t,t_next,c0,c1,cp,dt_full,fp[100];
 	double co_v,co_n,co_m,co_h,co_a,co_b,co_c,co_d,co_e,co_f,co_g,co_K,co_Na;
-	neuron_tm *nrn, *nrnp, *nrnx; /*TM neuron pointers*/
+	neuron_tm *nrnp, *nrnx; /*TM neuron pointers*/
+	neuron_tm nrn[numNeurons];
 	int step,i,p,nv=6,t_ms,flag,n_bs_fails=0,ip[100];
 	double steps_rk=floor((1.0/dt_rk)+0.5), steps_ps=floor((1.0/dt_ps)+0.5);
 
@@ -143,7 +144,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 		yp[i] = malloc((order_lim+1)*sizeof(double));
 		co[i] = malloc((order_lim+1)*sizeof(double));
 	}
-  nrn = malloc(n_nrn*sizeof(neuron_tm)); nrnx = nrn+n_nrn;
+  //nrn = malloc(n_nrn*sizeof(neuron_tm)); nrnx = nrn+n_nrn;
 
   /*Store constant parameters*/
 	ip[0]=sim_type; fp[17] = tol;
