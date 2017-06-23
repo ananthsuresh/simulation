@@ -194,7 +194,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
       		t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
 					nrnp = nrn;
 					#pragma omp parallel for
-					for(int i = 0; i < numNeurons; i++){
+					for(int i = 0; i < 1; i++){
 						fp[99] = dt_full;
 						flag = tm_ps(yp,co,yold,ynew,nrnp,fp,dt_full,order_lim);
 						nrnp++;
