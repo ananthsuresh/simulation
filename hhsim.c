@@ -182,12 +182,11 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
       	co[10][p] = co[10][0]*cp; co[11][p] = co[11][0]*cp; co[12][p] = co[12][0]*cp;
     	}
       c0 = (double)clock();
-			#pragma omp parallel
+			#pragma omp parallel private(nrnp)
 			{
 				neuron_tm  *nstart, *nend;
 				int tid = omp_get_thread_num();
 				int numthreads = omp_get_num_threads();
-				printf("There are %d threads", numthreads);
 				nstart = nrn + (tid * (numNeurons/numthreads));
 				nend = (nrn + ((tid + 1)* (numNeurons/numthreads)));
 	      for(t_ms=0,t=0; t_ms<t_end; t_ms++){
