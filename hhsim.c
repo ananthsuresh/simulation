@@ -187,11 +187,13 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 			// int numthreads = omp_get_num_threads();
 			// nstart = nrn + (tid * (numNeurons/numthreads));
 			// nend = (nrn + ((tid + 1)* (numNeurons/numthreads)));
+			#pragma omp parallel
+			{
       for(t_ms=0,t=0; t_ms<t_end; t_ms++){
       	ps_v[t_ms] = nrn[0].v;  //change 0 to index of neuron to be saved
       	for(step=0; step<steps_ps; step++){
       		t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
-					#pragma omp parallel for
+					#pragma omp for
 					for(int i = 0; i < numNeurons; i++){
 						fp[99] = dt_full;
 						flag = tm_ps(yp,co,yold,ynew,nrn + i,fp,dt_full,order_lim);
@@ -203,6 +205,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
     		  t=t_next;
       	} /*loop over steps*/
       }
+			}
        /*loop over t_ms*/
       c1 = (double)clock();
       t_cpu[0] = (double)(c1 - c0)/(CLOCKS_PER_SEC);
