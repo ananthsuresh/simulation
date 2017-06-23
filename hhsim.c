@@ -187,18 +187,15 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 			// int numthreads = omp_get_num_threads();
 			// nstart = nrn + (tid * (numNeurons/numthreads));
 			// nend = (nrn + ((tid + 1)* (numNeurons/numthreads)));
-
+			//printf("numNeurons = %d, and n_nrn = %d", numNeurons, n_nrn);
       for(t_ms=0,t=0; t_ms<t_end; t_ms++){
       	ps_v[t_ms] = nrn[0].v;  //change 0 to index of neuron to be saved
       	for(step=0; step<steps_ps; step++){
       		t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
-					nrnp = nrn;
 					#pragma omp parallel for
-					printf("numNeurons = %d, and n_nrn = %d", numNeurons, n_nrn);
-					for(int i = 0; i < n_nrn; i++){
+					for(int i = 0; i < 2; i++){
 						fp[99] = dt_full;
-						flag = tm_ps(yp,co,yold,ynew,nrnp,fp,dt_full,order_lim);
-						nrnp++;
+						flag = tm_ps(yp,co,yold,ynew,nrn + i,fp,dt_full,order_lim);
 					}
       		// for(nrnp = nstart; nrnp < nend; nrnp++){ /*loop over neurons*/
           //   fp[99] = dt_full;
@@ -371,10 +368,15 @@ int main(int argc, char *argv[]) {
   	  fp[10] = 0.01;// size of RK time step?
   	  fp[11] = 0.1; //size of time step for PS - was 0.1
 
-  	  double* ps_v = malloc(simTime * 1 * sizeof(double));
-  	  double* rk_v = malloc(simTime * 1 * sizeof(double));
-  	  double* bs_v = malloc(simTime * 1 * sizeof(double));
-  	  double* t_cpu = malloc(3 * 1 * sizeof(double));
+  	  // double* ps_v = malloc(simTime * 1 * sizeof(double));
+  	  // double* rk_v = malloc(simTime * 1 * sizeof(double));
+  	  // double* bs_v = malloc(simTime * 1 * sizeof(double));
+  	  // double* t_cpu = malloc(3 * 1 * sizeof(double));
+
+			double* ps_v = calloc(simTime,sizeof(double));
+			double* rk_v = calloc(simTime,sizeof(double));
+			double* bs_v = calloc(simTime,sizeof(double));
+			double* t_cpu = calloc(3,sizeof(double));
 
 
   run_sim(ps_v,rk_v,bs_v,t_cpu,fp,ip);
