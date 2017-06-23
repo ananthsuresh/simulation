@@ -182,7 +182,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
       	co[10][p] = co[10][0]*cp; co[11][p] = co[11][0]*cp; co[12][p] = co[12][0]*cp;
     	}
       c0 = (double)clock();
-			#pragma omp parallel private(nrnp)
+			#pragma omp parallel private(nrnp, nrn)
 			{
 				neuron_tm  *nstart, *nend;
 				int tid = omp_get_thread_num();
