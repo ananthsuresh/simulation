@@ -185,14 +185,10 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
       	ps_v[t_ms] = nrn[0].v;  //change 0 to index of neuron to be saved
       	for(step=0; step<steps_ps; step++){
       		t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
-					for(int i = 0; i < numNeurons; i++){
-						fp[99] = dt_full;
-						flag = tm_ps(yp,co,yold,ynew,nrn[i],fp,dt_full,order_lim);
-					}
-      		// for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*loop over neurons*/
-          //   fp[99] = dt_full;
-          //   flag = tm_ps(yp,co,yold,ynew,nrnp,fp,dt_full,order_lim);
-    		  // } /* end loop over neurons*/
+      		for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*loop over neurons*/
+            fp[99] = dt_full;
+            flag = tm_ps(yp,co,yold,ynew,nrnp,fp,dt_full,order_lim);
+    		  } /* end loop over neurons*/
     		  t=t_next;
       	} /*loop over steps*/
       } /*loop over t_ms*/
