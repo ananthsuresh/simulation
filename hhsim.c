@@ -5,7 +5,7 @@
  * Compile: gcc hhsim.c tm_util.c integ_util.c -o hhsim
  * ============================================================= */
 
-#include <math.h> 
+#include <math.h>
 #include <stdio.h>
 #include <time.h>
 #include <float.h>
@@ -27,7 +27,7 @@ int algo = 3; //1 for RK, 2 for BS, 3 for PS
 int tm_bs(double *y,double *y0,double *dydt,double *fp,neuron_tm *nrnp,double dt){
 	int flag=0,nv=6,bsk,kmax=50;
 	double v,n,m,h,g_ampa,g_gaba,eta[6],tol = fp[17];
- 	v = nrnp->v; n = nrnp->n; m = nrnp->m; h = nrnp->h; 
+ 	v = nrnp->v; n = nrnp->n; m = nrnp->m; h = nrnp->h;
 	g_ampa = nrnp->g_ampa; g_gaba = nrnp->g_gaba;
  	eta[0]=tol;	eta[1]=tol;	eta[2]=tol;	eta[3]=tol;	eta[4]=tol;	eta[5]=tol;
 	fp[8]=nrnp->I;
@@ -63,35 +63,35 @@ int tm_ps(double **yp,double **co,double *yold,double *ynew,neuron_tm *nrnp,doub
 	double co_alpha_n = 0.032, co_alpha_m = 0.32, co_beta_m = 0.28;
 	double tol = fp[17], *y, *y0, *dydt;
 	double ka = 40.0, kb = 18.0, kc = 5.0, ke = 5.0, kf = 4.0, kg = 5.0; /*slopes*/
-	v = nrnp->v; n = nrnp->n; m = nrnp->m; h = nrnp->h; 
+	v = nrnp->v; n = nrnp->n; m = nrnp->m; h = nrnp->h;
 	a = nrnp->a; b = nrnp->b;	c = nrnp->c; d = nrnp->d;
 	g_ampa = nrnp->g_ampa; g_gaba = nrnp->g_gaba;
-	
+
 	/*Get higher power terms*/
 	n2=n*n; n3=n2*n; n4=n3*n; m2=m*m; m3=m2*m; m3h=m3*h; co_K=gK*n4; co_Na=gNa*m3h;
-	
+
 	/*Tethered and derived values*/
-	v_alpha_n = E_alpha_n-v; v_alpha_m = E_alpha_m-v; v_beta_m = v-E_beta_m; 
-	c = exp((E_beta_h-v)/kc); d = h/(c+1); 
+	v_alpha_n = E_alpha_n-v; v_alpha_m = E_alpha_m-v; v_beta_m = v-E_beta_m;
+	c = exp((E_beta_h-v)/kc); d = h/(c+1);
 	e = exp(v_alpha_n/ke); q = v_alpha_n / (e-1); alpha_n = co_alpha_n*q;
  	f = exp(v_alpha_m/kf); r = v_alpha_m / (f-1);	alpha_m = co_alpha_m*r;
  	g = exp(v_beta_m/kg);  s = v_beta_m / (g-1); 	beta_m = co_beta_m*s;
- 	chi = -co_K - co_Na - gL - g_ampa - g_gaba;	
+ 	chi = -co_K - co_Na - gL - g_ampa - g_gaba;
  	psi = -(alpha_n+a);	xi = -(alpha_m+beta_m);
 	fp[3]=alpha_n; fp[4]=alpha_m; fp[5]=co_K; fp[6]=co_Na; fp[8]=nrnp->I;
  	eta[0]=tol;	eta[1]=tol;	eta[2]=tol;	eta[3]=tol;	eta[4]=tol;	eta[5]=tol;
-	
+
 	/*Load variables into solver structure*/
  	yp[0][0] = v; yp[1][0] = n; yp[2][0] = m; yp[3][0] = h;
  	yp[4][0] = g_ampa; yp[5][0] = g_gaba;
  	yp[6][0] = a; yp[7][0] = b; yp[8][0] = c; yp[9][0] = d;
- 	yp[10][0] = e; yp[11][0] = f; yp[12][0] = g; 
+ 	yp[10][0] = e; yp[11][0] = f; yp[12][0] = g;
  	yp[13][0] = q; yp[14][0] = r; yp[15][0] = s;
  	yp[16][0] = chi; yp[17][0] = psi; yp[18][0] = xi;
 
  	/*Run generic PS solver*/
   p = ps_step(yp,co,yold,ynew,fp,eta,tm_first,tm_iter,0,order_lim,nv+2,nv);
- 	
+
  	if(p<1 || p==order_lim){
  		y = malloc(nv*sizeof(double)); y0 = malloc(nv*sizeof(double));
     dydt = malloc(nv*sizeof(double));
@@ -101,7 +101,7 @@ int tm_ps(double **yp,double **co,double *yold,double *ynew,neuron_tm *nrnp,doub
 		nrnp->b = 0.128*exp((E_alpha_h-nrnp->v)/18);
     free(y); free(y0); free(dydt);
 	}
-	else{		
+	else{
     nrnp->v=ynew[0]; nrnp->n=ynew[1]; nrnp->m=ynew[2]; nrnp->h=ynew[3];
     nrnp->g_ampa=ynew[4]; nrnp->g_gaba=ynew[5]; nrnp->a=ynew[6]; nrnp->b=ynew[7];
 	}
@@ -112,51 +112,51 @@ int tm_ps(double **yp,double **co,double *yold,double *ynew,neuron_tm *nrnp,doub
 void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,int *ip_in){
   int syn_seed=ip_in[0],sim_type=ip_in[1],t_end=ip_in[2];
   int in_seed=ip_in[3],ps_only=ip_in[4],n_nrn=ip_in[5],order_lim=ip_in[99];
-  double tol=fp_in[9], dt_rk=fp_in[10], dt_ps=fp_in[11]; 
+  double tol=fp_in[9], dt_rk=fp_in[10], dt_ps=fp_in[11];
   double dt,t,t_next,c0,c1,cp,dt_full,fp[100];
 	double co_v,co_n,co_m,co_h,co_a,co_b,co_c,co_d,co_e,co_f,co_g,co_K,co_Na;
 	neuron_tm *nrn, *nrnp, *nrnx; /*TM neuron pointers*/
-	int step,i,p,nv=6,t_ms,flag,n_bs_fails=0,ip[100];  	
+	int step,i,p,nv=6,t_ms,flag,n_bs_fails=0,ip[100];
 	double steps_rk=floor((1.0/dt_rk)+0.5), steps_ps=floor((1.0/dt_ps)+0.5);
-  
+
   /*Cell Parameters*/
 	double C = 200; /*pF*/
 	double ka = 40.0, kb = 18.0, kc = 5.0, ke = 5.0, kf = 4.0, kg = 5.0;
-	
-	double tau_ampa_rk = 5.0/dt_rk, co_g_ampa_rk = -1.0/tau_ampa_rk; 
-  double tau_gaba_rk = 10.0/dt_rk, co_g_gaba_rk = -1.0/tau_gaba_rk;	
+
+	double tau_ampa_rk = 5.0/dt_rk, co_g_ampa_rk = -1.0/tau_ampa_rk;
+  double tau_gaba_rk = 10.0/dt_rk, co_g_gaba_rk = -1.0/tau_gaba_rk;
 	double tau_ampa_ps = 5.0/dt_ps, co_g_ampa_ps = -1.0/tau_ampa_ps;
-	double tau_gaba_ps = 10.0/dt_ps, co_g_gaba_ps = -1.0/tau_gaba_ps;	
-  
+	double tau_gaba_ps = 10.0/dt_ps, co_g_gaba_ps = -1.0/tau_gaba_ps;
+
   double co_alpha_n = 0.032, co_alpha_m = 0.32, co_beta_m = 0.28;
-  
+
   /*Dynamic Data structures for derivs code and generic PS solution*/
   double **co, **yp, *yold, *ynew, *y, *y0, *dydt;
-  y = malloc(nv*sizeof(double));  
+  y = malloc(nv*sizeof(double));
   y0 = malloc(nv*sizeof(double));
   dydt = malloc(nv*sizeof(double));
-  yold = malloc(NV*sizeof(double));  
+  yold = malloc(NV*sizeof(double));
   ynew = malloc(NV*sizeof(double));
-  yp = malloc(NV*sizeof(double *));  
+  yp = malloc(NV*sizeof(double *));
   co = malloc(NV*sizeof(double *));
 	for(i=0;i<NV;i++){
 		yp[i] = malloc((order_lim+1)*sizeof(double));
 		co[i] = malloc((order_lim+1)*sizeof(double));
 	}
   nrn = malloc(n_nrn*sizeof(neuron_tm)); nrnx = nrn+n_nrn;
-  
+
   /*Store constant parameters*/
 	ip[0]=sim_type; fp[17] = tol;
-	
+
 	/*Set variable coefficients*/
 	dt = dt_ps;
 	co_v = dt/C; co_n = dt;	co_m = dt; co_h = dt; /*time rescaling version*/
 	co_a = -1.0/ka;	co_b = -1.0/kb;	co_c = -1.0/kc;
 	co_e = -1.0/ke;	co_f = -1.0/kf;	co_g = 1.0/kg;
-	
+
 	co[0][0] = co_v; co[1][0] = co_n; co[2][0] = co_m; co[3][0] = co_h;
-	co[4][0] = co_g_ampa_ps; co[5][0] = co_g_gaba_ps;	
-  co[6][0] = co_a; co[7][0] = co_b;	co[8][0] = co_c; 
+	co[4][0] = co_g_ampa_ps; co[5][0] = co_g_gaba_ps;
+  co[6][0] = co_a; co[7][0] = co_b;	co[8][0] = co_c;
   co[10][0] = co_e; co[11][0] = co_f; co[12][0] = co_g;
 
   if(algo == 3){
@@ -173,7 +173,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
     		nrnp->g_ampa = 0.0; nrnp->g_gaba = 0.0;
     	}
     	dt_full=1; /*time rescaling*/ fp[7]=dt_full;
-    	for(p = 1; p < order_lim; p++){ 
+    	for(p = 1; p < order_lim; p++){
     		cp = 1.0/(double)(p+1);
       	co[0][p] = co[0][0]*cp; co[1][p] = co[1][0]*cp;	co[2][p] = co[2][0]*cp;
       	co[3][p] = co[3][0]*cp;	co[4][p] = co[4][0]*cp;	co[5][p] = co[5][0]*cp;
@@ -202,7 +202,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
         fprintf(pstime,"%d %5.2f\n", numNeurons, t_cpu[0]);
       }
   }
-	
+
   if(algo == 2){
     	/************************************************************/
       /********************* Bulirsch-Stoer ***********************/
@@ -237,7 +237,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
   }
 
   if(algo == 1){
-	  
+
       /************************************************************/
       // ************** 4th-order Runge-Kutta Method **************
       /************************************************************/
@@ -271,14 +271,14 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 
     	/*Free dynamic arrays*/
       free(nrn); free(yold); free(ynew); free(y); free(y0); free(dydt);
-    	for(i=0;i<NV;i++){free(yp[i]); free(co[i]);} free(yp); free(co); 
+    	for(i=0;i<NV;i++){free(yp[i]); free(co[i]);} free(yp); free(co);
   }
 }
 int main(int argc, char *argv[]) {
    //char dir[100];
    //char *cwd;
    // cwd = getcwd(0,0);
-   // printf("%s\n", cwd); 
+   // printf("%s\n", cwd);
   // sprintf(dir, "%s", getenv("PFSDIR"));
     int c = 0;
 
@@ -332,7 +332,7 @@ int main(int argc, char *argv[]) {
     argc -= optind;
     argv += optind;
       double dt;
-  	  int t_end; 
+  	  int t_end;
 
       //calloc initializes all values to 0
   	  double* fp = (double*)calloc(100, sizeof(double));
@@ -366,7 +366,7 @@ int main(int argc, char *argv[]) {
   run_sim(ps_v,rk_v,bs_v,t_cpu,fp,ip);
   if(plot == 0){
     if(algo == 3){
-      
+
       FILE *ps;
       char name1[] = "ps.txt";
      // strcat(dir, name1);
@@ -394,7 +394,7 @@ int main(int argc, char *argv[]) {
     		fprintf(bs,"%.1f\n",bs_v[i]);
       }
     }
-  } 
+  }
 
   // printf("t_cpu");
   // printf("\n");
@@ -402,5 +402,3 @@ int main(int argc, char *argv[]) {
   //   printf("%5.2f\n",t_cpu[i]);
   // }
 }
-
-
