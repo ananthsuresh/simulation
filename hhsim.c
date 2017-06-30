@@ -230,7 +230,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 	      }
 				double endtime = (double)clock();
 				double timetaken = (double)(endtime - startime)/(CLOCKS_PER_SEC);
-				printf("Time taken by thread %d: %5.2f ", tid, timetaken);
+				printf("Time taken by thread %d: %5.2f \n", tid, timetaken);
 			}
 			// c1 = (double)clock();
       // t_cpu[0] = (double)(c1 - c0)/(CLOCKS_PER_SEC);
