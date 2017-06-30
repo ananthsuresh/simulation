@@ -225,7 +225,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 							// if(t_ms == 0 && t == 0 && step == 0){
 							// 	printf("Thread %d, index %d \n", tid, n);
 							// }
-							nrnp = nrn + n;
+							nrnp = &nrn[n];
 							flag = tm_ps(yp,co,yold,ynew,nrnp,fp,dt_full,order_lim);
 						}
 	    		  t=t_next;
