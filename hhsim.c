@@ -162,7 +162,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
     	}
     	dt_full=1; /*time rescaling*/
 
-			#pragma omp parallel private(t_ms,t,step,i,p,cp)
+			#pragma omp parallel private(t_ms,t,t_next,step,i,p,cp,nrnp,flag)
 			{
 				double *yold = calloc(NV, sizeof(double));
 				double *ynew = calloc(NV, sizeof(double));
@@ -190,14 +190,14 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 				fp[7]=dt_full;
 				fp[99] = dt_full;
 				int tid = omp_get_thread_num();
-				double startime = (double)clock();
+				double startime = omp_get_wtime();
 	      for(t_ms=0,t=0; t_ms<t_end; t_ms++){
 					if(tid == 0){
 	      		ps_v[t_ms] = nrn[0].v;  //change 0 to index of neuron to be saved
 					}
 	      	for(step=0; step<steps_ps; step++){
 	      		t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
-						#pragma omp for private(nrnp)
+						#pragma omp for
 						for(int n = 0; n < numNeurons; n++){
 							// if(t_ms == 0 && t == 0 && step == 0){
 							// 	printf("Thread %d, index %d \n", tid, n);
@@ -208,8 +208,8 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 	    		  t=t_next;
 	      	} /*loop over steps*/
 	      }
-				double endtime = (double)clock();
-				double timetaken = (double)(endtime - startime)/(CLOCKS_PER_SEC);
+				double endtime = omp_get_wtime();
+				double timetaken = endtime - startime;
 				printf("Time taken by thread %d: %5.2f \n", tid, timetaken);
 			}
 			// c1 = (double)clock();
