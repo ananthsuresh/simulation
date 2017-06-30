@@ -112,7 +112,7 @@ int tm_ps(double **yp,double **co,double *yold,double *ynew,neuron_tm *nrnp,doub
 /***********************************************************/
 void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,int *ip_in){
   int syn_seed=ip_in[0],sim_type=ip_in[1],t_end=ip_in[2];
-  int in_seed=ip_in[3],ps_only=ip_in[4],n_nrn=ip_in[5],order_lim=ip_in[99];
+  int in_seed=ip_in[3],ps_only=ip_in[4],n_nrn=ip_in[5], order_lim=ip_in[99];
   double tol=fp_in[9], dt_rk=fp_in[10], dt_ps=fp_in[11];
   double dt,t,t_next,c0,c1,cp,dt_full;//fp[100] was here
 	double co_v,co_n,co_m,co_h,co_a,co_b,co_c,co_d,co_e,co_f,co_g,co_K,co_Na;
@@ -136,14 +136,6 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
   y = malloc(nv*sizeof(double));
   y0 = malloc(nv*sizeof(double));
   dydt = malloc(nv*sizeof(double));
-  // yold = malloc(NV*sizeof(double));
-  // ynew = malloc(NV*sizeof(double));
-  // yp = malloc(NV*sizeof(double *));
-  // co = malloc(NV*sizeof(double *));
-	// for(i=0;i<NV;i++){
-	// 	yp[i] = malloc((order_lim+1)*sizeof(double));
-	// 	co[i] = malloc((order_lim+1)*sizeof(double));
-	// }
   nrn = calloc(n_nrn, sizeof(neuron_tm)); nrnx = nrn+n_nrn;
 
   /*Store constant parameters*/
@@ -155,10 +147,6 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 	co_a = -1.0/ka;	co_b = -1.0/kb;	co_c = -1.0/kc;
 	co_e = -1.0/ke;	co_f = -1.0/kf;	co_g = 1.0/kg;
 
-	// co[0][0] = co_v; co[1][0] = co_n; co[2][0] = co_m; co[3][0] = co_h;
-	// co[4][0] = co_g_ampa_ps; co[5][0] = co_g_gaba_ps;
-  // co[6][0] = co_a; co[7][0] = co_b;	co[8][0] = co_c;
-  // co[10][0] = co_e; co[11][0] = co_f; co[12][0] = co_g;
 
   if(algo == 3){
 
@@ -166,25 +154,14 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
       /************* Adaptive Parker-Sochacki Method **************/
       /************************************************************/
       printf("PS. ");
-      //fp[0] = dt_ps; fp[1] = co_g_ampa_ps; fp[2] = co_g_gaba_ps;
       for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*Initialise neuron structure*/
     		nrnp->v = fp_in[0]; nrnp->n = fp_in[1]; nrnp->m = fp_in[2];
     		nrnp->h = fp_in[3];	nrnp->a = fp_in[4];	nrnp->b = fp_in[5];
     		nrnp->c = fp_in[6];	nrnp->d = fp_in[7];	nrnp->I = fp_in[8];
     		nrnp->g_ampa = 0.0; nrnp->g_gaba = 0.0;
     	}
-    	dt_full=1; /*time rescaling*/ //fp[7]=dt_full;
-    	// for(p = 1; p < order_lim; p++){
-    	// 	cp = 1.0/(double)(p+1);
-      // 	co[0][p] = co[0][0]*cp; co[1][p] = co[1][0]*cp;	co[2][p] = co[2][0]*cp;
-      // 	co[3][p] = co[3][0]*cp;	co[4][p] = co[4][0]*cp;	co[5][p] = co[5][0]*cp;
-      // 	co[6][p] = co[6][0]*cp; co[7][p] = co[7][0]*cp;	co[8][p] = co[8][0]*cp;
-      // 	co[10][p] = co[10][0]*cp; co[11][p] = co[11][0]*cp; co[12][p] = co[12][0]*cp;
-    	// }
+    	dt_full=1; /*time rescaling*/
 
-			//c0 = (double)clock();
-
-			//printf("numNeurons = %d, and n_nrn = %d", numNeurons, n_nrn);
 			#pragma omp parallel private(t_ms,t,step,i,p,cp)
 			{
 				double *yold = calloc(NV, sizeof(double));
