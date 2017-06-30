@@ -215,7 +215,9 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 				int tid = omp_get_thread_num();
 
 	      for(t_ms=0,t=0; t_ms<t_end; t_ms++){
-	      	ps_v[t_ms] = nrn[0].v;  //change 0 to index of neuron to be saved
+					if(tid == 0){
+	      		ps_v[t_ms] = nrn[0].v;  //change 0 to index of neuron to be saved
+					}
 	      	for(step=0; step<steps_ps; step++){
 	      		t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
 						#pragma omp for private(nrnp)
