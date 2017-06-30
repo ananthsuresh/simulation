@@ -181,7 +181,8 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
       // 	co[6][p] = co[6][0]*cp; co[7][p] = co[7][0]*cp;	co[8][p] = co[8][0]*cp;
       // 	co[10][p] = co[10][0]*cp; co[11][p] = co[11][0]*cp; co[12][p] = co[12][0]*cp;
     	// }
-      c0 = (double)clock();
+
+			c0 = (double)clock();
 
 			//printf("numNeurons = %d, and n_nrn = %d", numNeurons, n_nrn);
 			#pragma omp parallel private(t_ms,t,step,i,p)
@@ -211,13 +212,15 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 				fp[0] = dt_ps; fp[1] = co_g_ampa_ps; fp[2] = co_g_gaba_ps;
 				fp[7]=dt_full;
 				fp[99] = dt_full;
+				int tid = omp_get_thread_num();
+
 	      for(t_ms=0,t=0; t_ms<t_end; t_ms++){
 	      	ps_v[t_ms] = nrn[0].v;  //change 0 to index of neuron to be saved
 	      	for(step=0; step<steps_ps; step++){
 	      		t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
 						#pragma omp for private(nrnp)
 						for(int i = 0; i < numNeurons; i++){
-							int tid = omp_get_thread_num();
+
 							nrnp = nrn + i;
 							// if(i == 0){
 							// 	printf("Thread %d's neuron initial voltage is %f", tid, nrnp->v);
@@ -228,8 +231,10 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 	    		  t=t_next;
 	      	} /*loop over steps*/
 	      }
+
 			}
 
+			c1 = (double)clock();
 			// #pragma omp parallel for
 			// for(int i = 0; i < numNeurons; i++){
 			// 	ps_v[t_ms] = nrn[0].v;  //change 0 to index of neuron to be saved
@@ -244,7 +249,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 			// }
 
        /*loop over t_ms*/
-      c1 = (double)clock();
+
       t_cpu[0] = (double)(c1 - c0)/(CLOCKS_PER_SEC);
       printf("Time = %5.2f. \n",t_cpu[0]); fflush(stdout);
       if(plot == 1){
