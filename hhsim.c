@@ -187,13 +187,13 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 			//printf("numNeurons = %d, and n_nrn = %d", numNeurons, n_nrn);
 			#pragma omp parallel private(t_ms,t,step,i,p)
 			{
-				double *yold = malloc(NV*sizeof(double));
-				double *ynew = malloc(NV*sizeof(double));
-				double **yp = malloc(NV*sizeof(double *));
-				double **co = malloc(NV*sizeof(double *));
+				double *yold = calloc(NV, sizeof(double));
+				double *ynew = calloc(NV, sizeof(double));
+				double **yp = calloc(NV, sizeof(double *));
+				double **co = calloc(NV, sizeof(double *));
 				for(i=0;i<NV;i++){
-					yp[i] = malloc((order_lim+1)*sizeof(double));
-					co[i] = malloc((order_lim+1)*sizeof(double));
+					yp[i] = calloc((order_lim+1), sizeof(double));
+					co[i] = calloc((order_lim+1), sizeof(double));
 				}
 				co[0][0] = co_v; co[1][0] = co_n; co[2][0] = co_m; co[3][0] = co_h;
 				co[4][0] = co_g_ampa_ps; co[5][0] = co_g_gaba_ps;
