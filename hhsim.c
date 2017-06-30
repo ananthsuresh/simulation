@@ -232,16 +232,16 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 				double timetaken = (double)(endtime - startime)/(CLOCKS_PER_SEC);
 				printf("Time taken by thread %d: %5.2f ", tid, timetaken);
 			}
-		// 	c1 = (double)clock();
-    //   t_cpu[0] = (double)(c1 - c0)/(CLOCKS_PER_SEC);
-    //   printf("Time = %5.2f. \n",t_cpu[0]); fflush(stdout);
-    //   if(plot == 1){
-    //     FILE *pstime;
-    //     char timeName3[] = "pstime.txt";
-    //     pstime = fopen(timeName3, "ab+");
-    //     fprintf(pstime,"%d %5.2f\n", numNeurons, t_cpu[0]);
-    //   }
-		// }
+			// c1 = (double)clock();
+      // t_cpu[0] = (double)(c1 - c0)/(CLOCKS_PER_SEC);
+      // printf("Time = %5.2f. \n",t_cpu[0]); fflush(stdout);
+      // if(plot == 1){
+      //   FILE *pstime;
+      //   char timeName3[] = "pstime.txt";
+      //   pstime = fopen(timeName3, "ab+");
+      //   fprintf(pstime,"%d %5.2f\n", numNeurons, t_cpu[0]);
+      // }
+		}
 
   // if(algo == 2){
   //   	/************************************************************/
