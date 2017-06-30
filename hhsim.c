@@ -114,7 +114,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
   int syn_seed=ip_in[0],sim_type=ip_in[1],t_end=ip_in[2];
   int in_seed=ip_in[3],ps_only=ip_in[4],n_nrn=ip_in[5],order_lim=ip_in[99];
   double tol=fp_in[9], dt_rk=fp_in[10], dt_ps=fp_in[11];
-  double dt,t,t_next,c0,c1,cp,dt_full,fp[100];
+  double dt,t,t_next,c0,c1,cp,dt_full;//fp[100] was here
 	double co_v,co_n,co_m,co_h,co_a,co_b,co_c,co_d,co_e,co_f,co_g,co_K,co_Na;
 	neuron_tm  *nrn, *nrnp, *nrnx; /*TM neuron pointers*/
 	int step,i,p,nv=6,t_ms,flag,n_bs_fails=0,ip[100];
@@ -132,22 +132,22 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
   double co_alpha_n = 0.032, co_alpha_m = 0.32, co_beta_m = 0.28;
 
   /*Dynamic Data structures for derivs code and generic PS solution*/
-  double **co, **yp, *yold, *ynew, *y, *y0, *dydt;
+  double *y, *y0, *dydt; //yold, etc was here
   y = malloc(nv*sizeof(double));
   y0 = malloc(nv*sizeof(double));
   dydt = malloc(nv*sizeof(double));
-  yold = malloc(NV*sizeof(double));
-  ynew = malloc(NV*sizeof(double));
-  yp = malloc(NV*sizeof(double *));
-  co = malloc(NV*sizeof(double *));
-	for(i=0;i<NV;i++){
-		yp[i] = malloc((order_lim+1)*sizeof(double));
-		co[i] = malloc((order_lim+1)*sizeof(double));
-	}
-  nrn = malloc(n_nrn*sizeof(neuron_tm)); nrnx = nrn+n_nrn;
+  // yold = malloc(NV*sizeof(double));
+  // ynew = malloc(NV*sizeof(double));
+  // yp = malloc(NV*sizeof(double *));
+  // co = malloc(NV*sizeof(double *));
+	// for(i=0;i<NV;i++){
+	// 	yp[i] = malloc((order_lim+1)*sizeof(double));
+	// 	co[i] = malloc((order_lim+1)*sizeof(double));
+	// }
+  nrn = calloc(n_nrn, sizeof(neuron_tm)); nrnx = nrn+n_nrn;
 
   /*Store constant parameters*/
-	ip[0]=sim_type; fp[17] = tol;
+	ip[0]=sim_type; //fp[17] = tol;
 
 	/*Set variable coefficients*/
 	dt = dt_ps;
@@ -155,10 +155,10 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 	co_a = -1.0/ka;	co_b = -1.0/kb;	co_c = -1.0/kc;
 	co_e = -1.0/ke;	co_f = -1.0/kf;	co_g = 1.0/kg;
 
-	co[0][0] = co_v; co[1][0] = co_n; co[2][0] = co_m; co[3][0] = co_h;
-	co[4][0] = co_g_ampa_ps; co[5][0] = co_g_gaba_ps;
-  co[6][0] = co_a; co[7][0] = co_b;	co[8][0] = co_c;
-  co[10][0] = co_e; co[11][0] = co_f; co[12][0] = co_g;
+	// co[0][0] = co_v; co[1][0] = co_n; co[2][0] = co_m; co[3][0] = co_h;
+	// co[4][0] = co_g_ampa_ps; co[5][0] = co_g_gaba_ps;
+  // co[6][0] = co_a; co[7][0] = co_b;	co[8][0] = co_c;
+  // co[10][0] = co_e; co[11][0] = co_f; co[12][0] = co_g;
 
   if(algo == 3){
 
@@ -166,44 +166,83 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
       /************* Adaptive Parker-Sochacki Method **************/
       /************************************************************/
       printf("PS. ");
-      fp[0] = dt_ps; fp[1] = co_g_ampa_ps; fp[2] = co_g_gaba_ps;
+      //fp[0] = dt_ps; fp[1] = co_g_ampa_ps; fp[2] = co_g_gaba_ps;
       for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*Initialise neuron structure*/
     		nrnp->v = fp_in[0]; nrnp->n = fp_in[1]; nrnp->m = fp_in[2];
     		nrnp->h = fp_in[3];	nrnp->a = fp_in[4];	nrnp->b = fp_in[5];
     		nrnp->c = fp_in[6];	nrnp->d = fp_in[7];	nrnp->I = fp_in[8];
     		nrnp->g_ampa = 0.0; nrnp->g_gaba = 0.0;
     	}
-    	dt_full=1; /*time rescaling*/ fp[7]=dt_full;
-    	for(p = 1; p < order_lim; p++){
-    		cp = 1.0/(double)(p+1);
-      	co[0][p] = co[0][0]*cp; co[1][p] = co[1][0]*cp;	co[2][p] = co[2][0]*cp;
-      	co[3][p] = co[3][0]*cp;	co[4][p] = co[4][0]*cp;	co[5][p] = co[5][0]*cp;
-      	co[6][p] = co[6][0]*cp; co[7][p] = co[7][0]*cp;	co[8][p] = co[8][0]*cp;
-      	co[10][p] = co[10][0]*cp; co[11][p] = co[11][0]*cp; co[12][p] = co[12][0]*cp;
-    	}
+    	dt_full=1; /*time rescaling*/ //fp[7]=dt_full;
+    	// for(p = 1; p < order_lim; p++){
+    	// 	cp = 1.0/(double)(p+1);
+      // 	co[0][p] = co[0][0]*cp; co[1][p] = co[1][0]*cp;	co[2][p] = co[2][0]*cp;
+      // 	co[3][p] = co[3][0]*cp;	co[4][p] = co[4][0]*cp;	co[5][p] = co[5][0]*cp;
+      // 	co[6][p] = co[6][0]*cp; co[7][p] = co[7][0]*cp;	co[8][p] = co[8][0]*cp;
+      // 	co[10][p] = co[10][0]*cp; co[11][p] = co[11][0]*cp; co[12][p] = co[12][0]*cp;
+    	// }
       c0 = (double)clock();
-			// neuron_tm  *nstart, *nend;
-			// int tid = omp_get_thread_num();
-			// int numthreads = omp_get_num_threads();
-			// nstart = nrn + (tid * (numNeurons/numthreads));
-			// nend = (nrn + ((tid + 1)* (numNeurons/numthreads)));
+
 			//printf("numNeurons = %d, and n_nrn = %d", numNeurons, n_nrn);
-      for(t_ms=0,t=0; t_ms<t_end; t_ms++){
-      	ps_v[t_ms] = nrn[0].v;  //change 0 to index of neuron to be saved
-      	for(step=0; step<steps_ps; step++){
-      		t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
-					#pragma omp parallel for
-					for(int i = 0; i < 2; i++){
-						fp[99] = dt_full;
-						flag = tm_ps(yp,co,yold,ynew,nrn + i,fp,dt_full,order_lim);
-					}
-      		// for(nrnp = nstart; nrnp < nend; nrnp++){ /*loop over neurons*/
-          //   fp[99] = dt_full;
-          //   flag = tm_ps(yp,co,yold,ynew,nrnp,fp,dt_full,order_lim);
-    		  // } /* end loop over neurons*/
-    		  t=t_next;
-      	} /*loop over steps*/
-      }
+			#pragma omp parallel private(t_ms,t,step,i,p)
+			{
+				double *yold = malloc(NV*sizeof(double));
+				double *ynew = malloc(NV*sizeof(double));
+				double **yp = malloc(NV*sizeof(double *));
+				double **co = malloc(NV*sizeof(double *));
+				for(i=0;i<NV;i++){
+					yp[i] = malloc((order_lim+1)*sizeof(double));
+					co[i] = malloc((order_lim+1)*sizeof(double));
+				}
+				co[0][0] = co_v; co[1][0] = co_n; co[2][0] = co_m; co[3][0] = co_h;
+				co[4][0] = co_g_ampa_ps; co[5][0] = co_g_gaba_ps;
+				co[6][0] = co_a; co[7][0] = co_b;	co[8][0] = co_c;
+				co[10][0] = co_e; co[11][0] = co_f; co[12][0] = co_g;
+
+				for(p = 1; p < order_lim; p++){
+					cp = 1.0/(double)(p+1);
+					co[0][p] = co[0][0]*cp; co[1][p] = co[1][0]*cp;	co[2][p] = co[2][0]*cp;
+					co[3][p] = co[3][0]*cp;	co[4][p] = co[4][0]*cp;	co[5][p] = co[5][0]*cp;
+					co[6][p] = co[6][0]*cp; co[7][p] = co[7][0]*cp;	co[8][p] = co[8][0]*cp;
+					co[10][p] = co[10][0]*cp; co[11][p] = co[11][0]*cp; co[12][p] = co[12][0]*cp;
+				}
+				double fp[100];
+				fp[17] = tol;
+				fp[0] = dt_ps; fp[1] = co_g_ampa_ps; fp[2] = co_g_gaba_ps;
+				fp[7]=dt_full;
+				fp[99] = dt_full;
+	      for(t_ms=0,t=0; t_ms<t_end; t_ms++){
+	      	ps_v[t_ms] = nrn[0].v;  //change 0 to index of neuron to be saved
+	      	for(step=0; step<steps_ps; step++){
+	      		t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
+						#pragma omp for private(nrnp)
+						for(int i = 0; i < numNeurons; i++){
+							int tid = omp_get_thread_num();
+							nrnp = nrn + i;
+							// if(i == 0){
+							// 	printf("Thread %d's neuron initial voltage is %f", tid, nrnp->v);
+							// }
+
+							flag = tm_ps(yp,co,yold,ynew,nrnp,fp,dt_full,order_lim);
+						}
+	    		  t=t_next;
+	      	} /*loop over steps*/
+	      }
+			}
+
+			// #pragma omp parallel for
+			// for(int i = 0; i < numNeurons; i++){
+			// 	ps_v[t_ms] = nrn[0].v;  //change 0 to index of neuron to be saved
+			// 	for(t_ms=0,t=0; t_ms<t_end; t_ms++){
+			// 		for(step=0; step<steps_ps; step++){
+			// 			t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
+			// 			fp[99] = dt_full;
+			// 			flag = tm_ps(yp,co,yold,ynew,&nrn[i],fp,dt_full,order_lim);
+			// 			t=t_next;
+			// 		}
+			// 	}
+			// }
+
        /*loop over t_ms*/
       c1 = (double)clock();
       t_cpu[0] = (double)(c1 - c0)/(CLOCKS_PER_SEC);
@@ -216,76 +255,76 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
       }
   }
 
-  if(algo == 2){
-    	/************************************************************/
-      /********************* Bulirsch-Stoer ***********************/
-      /************************************************************/
-      printf("BS. ");
-      for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*Initialise neuron structure*/
-    		nrnp->v = fp_in[0]; nrnp->n = fp_in[1]; nrnp->m = fp_in[2]; nrnp->h = fp_in[3];
-    		nrnp->g_ampa = 0.0; nrnp->g_gaba = 0.0; nrnp->I = fp_in[8];
-    	}
-      c0 = (double)clock();
-      for(t_ms=0,t=0; t_ms<t_end; t_ms++){
-      	if(ps_only==1) break;
-      	bs_v[t_ms] = nrn[0].v;
-      	for(step=0; step<steps_ps; step++){
-      		t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
-    	  	for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*loop over neurons*/
-    	  		flag = tm_bs(y,y0,dydt,fp,nrnp,1); n_bs_fails+=flag;
-    		  } /*end loop over neurons*/
-    		  t=t_next;
-      	}/*loop over steps*/
-      } /*loop over t_ms*/
-      c1 = (double)clock();
-      t_cpu[1] = (double)(c1 - c0)/(CLOCKS_PER_SEC);
-    	printf("Time = %5.2f. \t",t_cpu[1]);
-    	printf("n BS fails = %d.\n",n_bs_fails); fflush(stdout);
-      if(plot == 1){
-        FILE *bstime;
-        char timeName2[] = "bstime.txt";
-        bstime = fopen(timeName2, "ab+");
-        fprintf(bstime,"%d %5.2f\n", numNeurons, t_cpu[1]);
-      }
-  }
-
-  if(algo == 1){
-
-      /************************************************************/
-      // ************** 4th-order Runge-Kutta Method **************
-      /************************************************************/
-      printf("RK. ");
-    	fp[0] = dt_rk; fp[1] = co_g_ampa_rk; fp[2] = co_g_gaba_rk;
-      for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*Initialise neuron structure*/
-    		nrnp->v = fp_in[0]; nrnp->n = fp_in[1]; nrnp->m = fp_in[2]; nrnp->h = fp_in[3];
-    		nrnp->g_ampa = 0.0; nrnp->g_gaba = 0.0; nrnp->I = fp_in[8];
-    	}
-      c0 = (double)clock();
-      for(t_ms=0,t=0; t_ms<t_end; t_ms++){
-      	if(ps_only==1) break;
-      	rk_v[t_ms] = nrn[0].v;
-      	for(step=0; step<steps_rk; step++){
-      		t_next = (double)t_ms + (step+1)*dt_rk;/*end of current time step*/
-    	  	for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*loop over neurons*/
-    	  		tm_rk(y,y0,dydt,fp,nrnp,1);
-    		  } /*end loop over neurons*/
-    		  t=t_next;
-      	} /*loop over steps*/
-      } /*loop over t_ms*/
-      c1 = (double)clock();
-      t_cpu[2] = (double)(c1 - c0)/(CLOCKS_PER_SEC);
-      printf("Time = %5.2f. \n",t_cpu[2]); fflush(stdout);
-      if(plot == 1){
-      	FILE *rktime;
-        char timeName1[] = "rktime.txt";
-        rktime = fopen(timeName1, "ab+");
-        fprintf(rktime,"%d %5.2f\n", numNeurons, t_cpu[2]);
-      }
-
-    	/*Free dynamic arrays*/
-      free(nrn); free(yold); free(ynew); free(y); free(y0); free(dydt);
-    	for(i=0;i<NV;i++){free(yp[i]); free(co[i]);} free(yp); free(co);
-  }
+  // if(algo == 2){
+  //   	/************************************************************/
+  //     /********************* Bulirsch-Stoer ***********************/
+  //     /************************************************************/
+  //     printf("BS. ");
+  //     for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*Initialise neuron structure*/
+  //   		nrnp->v = fp_in[0]; nrnp->n = fp_in[1]; nrnp->m = fp_in[2]; nrnp->h = fp_in[3];
+  //   		nrnp->g_ampa = 0.0; nrnp->g_gaba = 0.0; nrnp->I = fp_in[8];
+  //   	}
+  //     c0 = (double)clock();
+  //     for(t_ms=0,t=0; t_ms<t_end; t_ms++){
+  //     	if(ps_only==1) break;
+  //     	bs_v[t_ms] = nrn[0].v;
+  //     	for(step=0; step<steps_ps; step++){
+  //     		t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
+  //   	  	for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*loop over neurons*/
+  //   	  		flag = tm_bs(y,y0,dydt,fp,nrnp,1); n_bs_fails+=flag;
+  //   		  } /*end loop over neurons*/
+  //   		  t=t_next;
+  //     	}/*loop over steps*/
+  //     } /*loop over t_ms*/
+  //     c1 = (double)clock();
+  //     t_cpu[1] = (double)(c1 - c0)/(CLOCKS_PER_SEC);
+  //   	printf("Time = %5.2f. \t",t_cpu[1]);
+  //   	printf("n BS fails = %d.\n",n_bs_fails); fflush(stdout);
+  //     if(plot == 1){
+  //       FILE *bstime;
+  //       char timeName2[] = "bstime.txt";
+  //       bstime = fopen(timeName2, "ab+");
+  //       fprintf(bstime,"%d %5.2f\n", numNeurons, t_cpu[1]);
+  //     }
+  // }
+	//
+  // if(algo == 1){
+	//
+  //     /************************************************************/
+  //     // ************** 4th-order Runge-Kutta Method **************
+  //     /************************************************************/
+  //     printf("RK. ");
+  //   	fp[0] = dt_rk; fp[1] = co_g_ampa_rk; fp[2] = co_g_gaba_rk;
+  //     for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*Initialise neuron structure*/
+  //   		nrnp->v = fp_in[0]; nrnp->n = fp_in[1]; nrnp->m = fp_in[2]; nrnp->h = fp_in[3];
+  //   		nrnp->g_ampa = 0.0; nrnp->g_gaba = 0.0; nrnp->I = fp_in[8];
+  //   	}
+  //     c0 = (double)clock();
+  //     for(t_ms=0,t=0; t_ms<t_end; t_ms++){
+  //     	if(ps_only==1) break;
+  //     	rk_v[t_ms] = nrn[0].v;
+  //     	for(step=0; step<steps_rk; step++){
+  //     		t_next = (double)t_ms + (step+1)*dt_rk;/*end of current time step*/
+  //   	  	for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*loop over neurons*/
+  //   	  		tm_rk(y,y0,dydt,fp,nrnp,1);
+  //   		  } /*end loop over neurons*/
+  //   		  t=t_next;
+  //     	} /*loop over steps*/
+  //     } /*loop over t_ms*/
+  //     c1 = (double)clock();
+  //     t_cpu[2] = (double)(c1 - c0)/(CLOCKS_PER_SEC);
+  //     printf("Time = %5.2f. \n",t_cpu[2]); fflush(stdout);
+  //     if(plot == 1){
+  //     	FILE *rktime;
+  //       char timeName1[] = "rktime.txt";
+  //       rktime = fopen(timeName1, "ab+");
+  //       fprintf(rktime,"%d %5.2f\n", numNeurons, t_cpu[2]);
+  //     }
+	//
+  //   	/*Free dynamic arrays*/
+  //     free(nrn); free(yold); free(ynew); free(y); free(y0); free(dydt);
+  //   	for(i=0;i<NV;i++){free(yp[i]); free(co[i]);} free(yp); free(co);
+  // }
 }
 int main(int argc, char *argv[]) {
    //char dir[100];
@@ -391,6 +430,7 @@ int main(int argc, char *argv[]) {
     		fprintf(ps,"%.1f\n", ps_v[i]);
 
       }
+			fclose(ps);
     }
 
     if(algo == 1){
@@ -400,6 +440,7 @@ int main(int argc, char *argv[]) {
       for(int i = 0;i < simTime; i++){
     		fprintf(rk,"%.1f\n", rk_v[i]);
       }
+			fclose(rk);
     }
 
     if(algo == 2){
@@ -409,6 +450,7 @@ int main(int argc, char *argv[]) {
       for(int i = 0;i < simTime; i++){
     		fprintf(bs,"%.1f\n",bs_v[i]);
       }
+			fclose(bs);
     }
   }
 
