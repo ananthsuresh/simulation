@@ -213,7 +213,6 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 				fp[7]=dt_full;
 				fp[99] = dt_full;
 				int tid = omp_get_thread_num();
-				c0 = (double)clock();
 
 	      for(t_ms=0,t=0; t_ms<t_end; t_ms++){
 	      	ps_v[t_ms] = nrn[0].v;  //change 0 to index of neuron to be saved
@@ -221,49 +220,23 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 	      		t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
 						#pragma omp for private(nrnp)
 						for(int i = 0; i < numNeurons; i++){
-
 							nrnp = nrn + i;
-							// if(i == 0){
-							// 	printf("Thread %d's neuron initial voltage is %f", tid, nrnp->v);
-							// }
-
 							flag = tm_ps(yp,co,yold,ynew,nrnp,fp,dt_full,order_lim);
 						}
 	    		  t=t_next;
 	      	} /*loop over steps*/
 	      }
-				c1 = (double)clock();
-
-				double timetaken = (double)(c1 - c0)/(CLOCKS_PER_SEC);
-				printf("Thread %d time: %5.2f \n", tid, timetaken);
-
 			}
-
-
-			// #pragma omp parallel for
-			// for(int i = 0; i < numNeurons; i++){
-			// 	ps_v[t_ms] = nrn[0].v;  //change 0 to index of neuron to be saved
-			// 	for(t_ms=0,t=0; t_ms<t_end; t_ms++){
-			// 		for(step=0; step<steps_ps; step++){
-			// 			t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
-			// 			fp[99] = dt_full;
-			// 			flag = tm_ps(yp,co,yold,ynew,&nrn[i],fp,dt_full,order_lim);
-			// 			t=t_next;
-			// 		}
-			// 	}
-			// }
-
-       /*loop over t_ms*/
-
-      // t_cpu[0] = (double)(c1 - c0)/(CLOCKS_PER_SEC);
-      // printf("Time = %5.2f. \n",t_cpu[0]); fflush(stdout);
-      // if(plot == 1){
-      //   FILE *pstime;
-      //   char timeName3[] = "pstime.txt";
-      //   pstime = fopen(timeName3, "ab+");
-      //   fprintf(pstime,"%d %5.2f\n", numNeurons, t_cpu[0]);
-      // }
-  }
+			c1 = (double)clock();
+      t_cpu[0] = (double)(c1 - c0)/(CLOCKS_PER_SEC);
+      printf("Time = %5.2f. \n",t_cpu[0]); fflush(stdout);
+      if(plot == 1){
+        FILE *pstime;
+        char timeName3[] = "pstime.txt";
+        pstime = fopen(timeName3, "ab+");
+        fprintf(pstime,"%d %5.2f\n", numNeurons, t_cpu[0]);
+      }
+		}
 
   // if(algo == 2){
   //   	/************************************************************/
