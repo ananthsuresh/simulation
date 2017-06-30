@@ -221,8 +221,8 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 	      	for(step=0; step<steps_ps; step++){
 	      		t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
 						#pragma omp for private(nrnp)
-						for(int i = 0; i < numNeurons; i++){
-							nrnp = nrn + i;
+						for(int n = 0; n < numNeurons; n++){
+							nrnp = nrn + n;
 							flag = tm_ps(yp,co,yold,ynew,nrnp,fp,dt_full,order_lim);
 						}
 	    		  t=t_next;
