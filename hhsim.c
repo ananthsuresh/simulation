@@ -185,7 +185,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 			//c0 = (double)clock();
 
 			//printf("numNeurons = %d, and n_nrn = %d", numNeurons, n_nrn);
-			#pragma omp parallel private(t_ms,t,step,i,p)
+			#pragma omp parallel private(t_ms,t,step,i,p,cp)
 			{
 				double *yold = calloc(NV, sizeof(double));
 				double *ynew = calloc(NV, sizeof(double));
@@ -222,6 +222,9 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 	      		t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
 						#pragma omp for private(nrnp)
 						for(int n = 0; n < numNeurons; n++){
+							// if(t_ms == 0 && t == 0 && step == 0){
+							// 	printf("Thread %d, index %d \n", tid, n);
+							// }
 							nrnp = nrn + n;
 							flag = tm_ps(yp,co,yold,ynew,nrnp,fp,dt_full,order_lim);
 						}
