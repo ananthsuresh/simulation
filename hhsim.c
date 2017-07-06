@@ -207,6 +207,10 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
     	/************************************************************/
       /********************* Bulirsch-Stoer ***********************/
       /************************************************************/
+			fp[17] = tol;
+			fp[0] = dt_ps; fp[1] = co_g_ampa_ps; fp[2] = co_g_gaba_ps;
+			fp[7]=dt_full;
+			fp[99] = dt_full;
       printf("BS. ");
       for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*Initialise neuron structure*/
     		nrnp->v = fp_in[0]; nrnp->n = fp_in[1]; nrnp->m = fp_in[2]; nrnp->h = fp_in[3];
