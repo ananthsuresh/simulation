@@ -21,7 +21,7 @@
 #define NV 25
 int numNeurons = 10;
 int simTime = 1000;
-int plot = 0;
+int plot = 0; //0 for Voltage, 1 for Time
 int algo = 3; //1 for RK, 2 for BS, 3 for PS
 
 
@@ -132,10 +132,10 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
   double co_alpha_n = 0.032, co_alpha_m = 0.32, co_beta_m = 0.28;
 
   /*Dynamic Data structures for derivs code and generic PS solution*/
-  double *y, *y0, *dydt; //yold, etc was here
-  y = malloc(nv*sizeof(double));
-  y0 = malloc(nv*sizeof(double));
-  dydt = malloc(nv*sizeof(double));
+  // double *y, *y0, *dydt; //yold, etc was here
+  // y = malloc(nv*sizeof(double));
+  // y0 = malloc(nv*sizeof(double));
+  // dydt = malloc(nv*sizeof(double));
   nrn = calloc(n_nrn, sizeof(neuron_tm)); nrnx = nrn+n_nrn;
 
   /*Store constant parameters*/
@@ -162,7 +162,10 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
     	}
     	dt_full=1; /*time rescaling*/
 
-			#pragma omp parallel private(t_ms,t,t_next,step,i,p,cp,nrnp,flag)
+			double timetaken;
+
+			//keeping shared variables private, reduction times only slowest thread
+			#pragma omp parallel private(t_ms,t,t_next,step,i,p,cp,nrnp,flag) reduction(max: timetaken)
 			{
 				double *yold = calloc(NV, sizeof(double));
 				double *ynew = calloc(NV, sizeof(double));
@@ -192,6 +195,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 				int tid = omp_get_thread_num();
 				double startime = omp_get_wtime();
 	      for(t_ms=0,t=0; t_ms<t_end; t_ms++){
+					//only thread that is in charge of neuron 0 stores data in array
 					if(tid == 0){
 	      		ps_v[t_ms] = nrn[0].v;  //change 0 to index of neuron to be saved
 					}
@@ -199,9 +203,6 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 	      		t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
 						#pragma omp for
 						for(int n = 0; n < numNeurons; n++){
-							// if(t_ms == 0 && t == 0 && step == 0){
-							// 	printf("Thread %d, index %d \n", tid, n);
-							// }
 							nrnp = &nrn[n];
 							flag = tm_ps(yp,co,yold,ynew,nrnp,fp,dt_full,order_lim);
 						}
@@ -209,52 +210,73 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 	      	} /*loop over steps*/
 	      }
 				double endtime = omp_get_wtime();
-				double timetaken = endtime - startime;
-				printf("Time taken by thread %d: %5.2f \n", tid, timetaken);
+				timetaken = endtime - startime;
+
 			}
-			// c1 = (double)clock();
-      // t_cpu[0] = (double)(c1 - c0)/(CLOCKS_PER_SEC);
-      // printf("Time = %5.2f. \n",t_cpu[0]); fflush(stdout);
-      // if(plot == 1){
-      //   FILE *pstime;
-      //   char timeName3[] = "pstime.txt";
-      //   pstime = fopen(timeName3, "ab+");
-      //   fprintf(pstime,"%d %5.2f\n", numNeurons, t_cpu[0]);
-      // }
+      t_cpu[0] = timetaken;
+      printf("Time = %5.2f. \n",t_cpu[0]); fflush(stdout);
+      if(plot == 1){
+        FILE *pstime;
+        char timeName3[] = "pstime.txt";
+        pstime = fopen(timeName3, "ab+");
+        fprintf(pstime,"%d %5.2f\n", numNeurons, t_cpu[0]);
+      }
 		}
 
-  // if(algo == 2){
-  //   	/************************************************************/
-  //     /********************* Bulirsch-Stoer ***********************/
-  //     /************************************************************/
-  //     printf("BS. ");
-  //     for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*Initialise neuron structure*/
-  //   		nrnp->v = fp_in[0]; nrnp->n = fp_in[1]; nrnp->m = fp_in[2]; nrnp->h = fp_in[3];
-  //   		nrnp->g_ampa = 0.0; nrnp->g_gaba = 0.0; nrnp->I = fp_in[8];
-  //   	}
-  //     c0 = (double)clock();
-  //     for(t_ms=0,t=0; t_ms<t_end; t_ms++){
-  //     	if(ps_only==1) break;
-  //     	bs_v[t_ms] = nrn[0].v;
-  //     	for(step=0; step<steps_ps; step++){
-  //     		t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
-  //   	  	for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*loop over neurons*/
-  //   	  		flag = tm_bs(y,y0,dydt,fp,nrnp,1); n_bs_fails+=flag;
-  //   		  } /*end loop over neurons*/
-  //   		  t=t_next;
-  //     	}/*loop over steps*/
-  //     } /*loop over t_ms*/
-  //     c1 = (double)clock();
-  //     t_cpu[1] = (double)(c1 - c0)/(CLOCKS_PER_SEC);
-  //   	printf("Time = %5.2f. \t",t_cpu[1]);
-  //   	printf("n BS fails = %d.\n",n_bs_fails); fflush(stdout);
-  //     if(plot == 1){
-  //       FILE *bstime;
-  //       char timeName2[] = "bstime.txt";
-  //       bstime = fopen(timeName2, "ab+");
-  //       fprintf(bstime,"%d %5.2f\n", numNeurons, t_cpu[1]);
-  //     }
-  // }
+
+  if(algo == 2){
+
+			double timetaken;
+    	/************************************************************/
+      /********************* Bulirsch-Stoer ***********************/
+      /************************************************************/
+      printf("BS. ");
+      for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*Initialise neuron structure*/
+    		nrnp->v = fp_in[0]; nrnp->n = fp_in[1]; nrnp->m = fp_in[2]; nrnp->h = fp_in[3];
+    		nrnp->g_ampa = 0.0; nrnp->g_gaba = 0.0; nrnp->I = fp_in[8];
+    	}
+
+		  #pragma omp parallel private(t_ms,t,t_next,step,nrnp,flag) reduction(+: n_bs_fails), reduction(max: timetaken)
+			{
+				double *y, *y0, *dydt;
+				y = malloc(nv*sizeof(double));
+				y0 = malloc(nv*sizeof(double));
+				dydt = malloc(nv*sizeof(double));
+				double fp[100];
+				fp[17] = tol;
+				fp[0] = dt_ps; fp[1] = co_g_ampa_ps; fp[2] = co_g_gaba_ps;
+				fp[7]=dt_full;
+				fp[99] = dt_full;
+				int tid = omp_get_thread_num();
+	      double startime = omp_get_wtime();
+	      for(t_ms=0,t=0; t_ms<t_end; t_ms++){
+	      	if(ps_only==1) break;
+					if(tid == 0){
+	      		bs_v[t_ms] = nrn[0].v;
+					}
+	      	for(step=0; step<steps_ps; step++){
+	      		t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
+						#pragma omp for
+	    	  	for(int n = 0; n < numNeurons; n++){ /*loop over neurons*/
+							nrnp = &nrn[n];
+	    	  		flag = tm_bs(y,y0,dydt,fp,nrnp,1); n_bs_fails+=flag;
+	    		  } /*end loop over neurons*/
+	    		  t=t_next;
+	      	}/*loop over steps*/
+	      } /*loop over t_ms*/
+				double endtime = omp_get_wtime();
+				timetaken = endtime - startime;
+			}
+			t_cpu[1] = timetaken;
+    	printf("Time = %5.2f. \t",t_cpu[1]);
+    	printf("n BS fails = %d.\n",n_bs_fails); fflush(stdout);
+      if(plot == 1){
+        FILE *bstime;
+        char timeName2[] = "bstime.txt";
+        bstime = fopen(timeName2, "ab+");
+        fprintf(bstime,"%d %5.2f\n", numNeurons, t_cpu[1]);
+      }
+  }
 	//
   // if(algo == 1){
 	//
@@ -326,9 +348,6 @@ int main(int argc, char *argv[]) {
                 if(!strcmp(optarg, "ps")){
                   algo = 3;
                 }
-                else{
-                  fprintf(stderr, "Invalid -a selection, please choose either rk,ps, or bs ");
-                }
                 break;
             case 'p':
                 if(!strcmp(optarg, "voltage")){
@@ -375,10 +394,6 @@ int main(int argc, char *argv[]) {
   	  fp[10] = 0.01;// size of RK time step?
   	  fp[11] = 0.1; //size of time step for PS - was 0.1
 
-  	  // double* ps_v = malloc(simTime * 1 * sizeof(double));
-  	  // double* rk_v = malloc(simTime * 1 * sizeof(double));
-  	  // double* bs_v = malloc(simTime * 1 * sizeof(double));
-  	  // double* t_cpu = malloc(3 * 1 * sizeof(double));
 
 			double* ps_v = calloc(simTime,sizeof(double));
 			double* rk_v = calloc(simTime,sizeof(double));
@@ -422,9 +437,5 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  // printf("t_cpu");
-  // printf("\n");
-  // for(int i = 0;i < 3; i++){
-  //   printf("%5.2f\n",t_cpu[i]);
-  // }
+
 }
