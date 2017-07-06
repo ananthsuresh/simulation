@@ -1,0 +1,17 @@
+TM_PS input tracking
+
+yp - double ** - 2D Array of doubles used for the solver structure -> Used in tm_ps itself -> exclusively LHS
+
+co - double ** ->passed into ps_step -> into tm_first & tm_iter -> used solely on RHS in those
+
+yold - double * -> array passed into ps_step(called y1 in ps_step) - used both on LHS and RHS
+
+ynew - double * -> array passed into ps_step(still called ynew) - used on LHS and RHS
+
+nrnp - neuron_tm * -> used in tm_ps itself, fields both used and modified, aka LHS and RHS
+
+fp - double * -> array used on both LHS and RHS in tm_ps itself, also passed -> ps_step(still called fp) - used once on RHS and then passed -> tm_first and tm_iter - used on RHS of tm_first, doesn't appear to be used in tm_iter
+
+dt_full - just double - passed by value -> tm_bs(called dt in here) - passed by value -> bs_step- used on RHS and also passed -> mmid(called htot) - used on RHS
+
+order_lim - just int, so always passed by value - used once on RHS in tm_ps, then passed -> ps_step(called ps_limit here) - used on RHS twice
