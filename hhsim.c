@@ -306,9 +306,6 @@ int main(int argc, char *argv[]) {
                 if(!strcmp(optarg, "ps")){
                   algo = 3;
                 }
-                else{
-                  fprintf(stderr, "Invalid -a selection, please choose either rk,ps, or bs ");
-                }
                 break;
             case 'p':
                 if(!strcmp(optarg, "voltage")){
