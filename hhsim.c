@@ -211,7 +211,8 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 	      }
 				double endtime = omp_get_wtime();
 				timetaken = endtime - startime;
-
+				free(yold); free(ynew);
+				for(i=0;i<NV;i++){free(yp[i]); free(co[i]);} free(yp); free(co);
 			}
       t_cpu[0] = timetaken;
       printf("Time = %5.2f. \n",t_cpu[0]); fflush(stdout);
@@ -266,6 +267,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 	      } /*loop over t_ms*/
 				double endtime = omp_get_wtime();
 				timetaken = endtime - startime;
+				free(y); free(y0); free(dydt);
 			}
 			t_cpu[1] = timetaken;
     	printf("Time = %5.2f. \t",t_cpu[1]);
@@ -277,44 +279,64 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
         fprintf(bstime,"%d %5.2f\n", numNeurons, t_cpu[1]);
       }
   }
-	//
-  // if(algo == 1){
-	//
-  //     /************************************************************/
-  //     // ************** 4th-order Runge-Kutta Method **************
-  //     /************************************************************/
-  //     printf("RK. ");
-  //   	fp[0] = dt_rk; fp[1] = co_g_ampa_rk; fp[2] = co_g_gaba_rk;
-  //     for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*Initialise neuron structure*/
-  //   		nrnp->v = fp_in[0]; nrnp->n = fp_in[1]; nrnp->m = fp_in[2]; nrnp->h = fp_in[3];
-  //   		nrnp->g_ampa = 0.0; nrnp->g_gaba = 0.0; nrnp->I = fp_in[8];
-  //   	}
-  //     c0 = (double)clock();
-  //     for(t_ms=0,t=0; t_ms<t_end; t_ms++){
-  //     	if(ps_only==1) break;
-  //     	rk_v[t_ms] = nrn[0].v;
-  //     	for(step=0; step<steps_rk; step++){
-  //     		t_next = (double)t_ms + (step+1)*dt_rk;/*end of current time step*/
-  //   	  	for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*loop over neurons*/
-  //   	  		tm_rk(y,y0,dydt,fp,nrnp,1);
-  //   		  } /*end loop over neurons*/
-  //   		  t=t_next;
-  //     	} /*loop over steps*/
-  //     } /*loop over t_ms*/
-  //     c1 = (double)clock();
-  //     t_cpu[2] = (double)(c1 - c0)/(CLOCKS_PER_SEC);
-  //     printf("Time = %5.2f. \n",t_cpu[2]); fflush(stdout);
-  //     if(plot == 1){
-  //     	FILE *rktime;
-  //       char timeName1[] = "rktime.txt";
-  //       rktime = fopen(timeName1, "ab+");
-  //       fprintf(rktime,"%d %5.2f\n", numNeurons, t_cpu[2]);
-  //     }
-	//
-  //   	/*Free dynamic arrays*/
-  //     free(nrn); free(yold); free(ynew); free(y); free(y0); free(dydt);
-  //   	for(i=0;i<NV;i++){free(yp[i]); free(co[i]);} free(yp); free(co);
-  // }
+
+  if(algo == 1){
+			double timetaken;
+      /************************************************************/
+      // ************** 4th-order Runge-Kutta Method **************
+      /************************************************************/
+      printf("RK. ");
+      for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*Initialise neuron structure*/
+    		nrnp->v = fp_in[0]; nrnp->n = fp_in[1]; nrnp->m = fp_in[2]; nrnp->h = fp_in[3];
+    		nrnp->g_ampa = 0.0; nrnp->g_gaba = 0.0; nrnp->I = fp_in[8];
+    	}
+
+			#pragma omp parallel private(t_ms,t,t_next,step,nrnp) reduction(max: timetaken)
+			{
+				double *y, *y0, *dydt;
+				y = malloc(nv*sizeof(double));
+				y0 = malloc(nv*sizeof(double));
+				dydt = malloc(nv*sizeof(double));
+				double fp[100];
+				fp[17] = tol;
+				fp[7]=dt_full;
+				fp[99] = dt_full;
+				fp[0] = dt_rk; fp[1] = co_g_ampa_rk; fp[2] = co_g_gaba_rk;
+	      double startime = omp_get_wtime();
+				int tid = omp_get_thread_num();
+	      for(t_ms=0,t=0; t_ms<t_end; t_ms++){
+	      	if(ps_only==1) break;
+					if(tid == 0){
+	      		rk_v[t_ms] = nrn[0].v;
+					}
+	      	for(step=0; step<steps_rk; step++){
+	      		t_next = (double)t_ms + (step+1)*dt_rk;/*end of current time step*/
+						#pragma omp for
+	    	  	for(int n = 0; n < numNeurons; n++){ /*loop over neurons*/
+							nrnp = &nrn[n];
+	    	  		tm_rk(y,y0,dydt,fp,nrnp,1);
+	    		  } /*end loop over neurons*/
+	    		  t=t_next;
+	      	} /*loop over steps*/
+	      } /*loop over t_ms*/
+	      double endtime = omp_get_wtime();
+				timetaken = endtime - startime;
+				free(y); free(y0); free(dydt);
+			}
+      t_cpu[2] = timetaken;
+      printf("Time = %5.2f. \n",t_cpu[2]); fflush(stdout);
+      if(plot == 1){
+      	FILE *rktime;
+        char timeName1[] = "rktime.txt";
+        rktime = fopen(timeName1, "ab+");
+        fprintf(rktime,"%d %5.2f\n", numNeurons, t_cpu[2]);
+      }
+
+    	/*Free dynamic arrays*/
+
+
+  }
+	free(nrn);
 }
 int main(int argc, char *argv[]) {
    //char dir[100];
