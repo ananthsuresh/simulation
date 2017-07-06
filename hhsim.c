@@ -247,6 +247,9 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
       /************************************************************/
       printf("RK. ");
     	fp[0] = dt_rk; fp[1] = co_g_ampa_rk; fp[2] = co_g_gaba_rk;
+			fp[17] = tol;
+			fp[7]=dt_full;
+			fp[99] = dt_full;
       for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*Initialise neuron structure*/
     		nrnp->v = fp_in[0]; nrnp->n = fp_in[1]; nrnp->m = fp_in[2]; nrnp->h = fp_in[3];
     		nrnp->g_ampa = 0.0; nrnp->g_gaba = 0.0; nrnp->I = fp_in[8];
