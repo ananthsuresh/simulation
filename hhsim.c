@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include "tm_util.h"
 #include "integ_util.h"
+#include "mpi.h"
 
 
 #define NV 25
@@ -109,7 +110,9 @@ int tm_ps(double **yp,double **co,double *yold,double *ynew,neuron_tm *nrnp,doub
 }
 
 /***********************************************************/
-void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,int *ip_in){
+void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,int *ip_in, int nstart, int nstop, int my_rank){
+
+
   int syn_seed=ip_in[0],sim_type=ip_in[1],t_end=ip_in[2];
   int in_seed=ip_in[3],ps_only=ip_in[4],n_nrn=ip_in[5],order_lim=ip_in[99];
   double tol=fp_in[9], dt_rk=fp_in[10], dt_ps=fp_in[11];
@@ -182,10 +185,11 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
     	}
       c0 = (double)clock();
       for(t_ms=0,t=0; t_ms<t_end; t_ms++){
-      	ps_v[t_ms] = nrn[0].v;  //change 0 to index of neuron to be saved
+				ps_v[t_ms] = nrn[0].v;  //change 0 to index of neuron to be saved
       	for(step=0; step<steps_ps; step++){
       		t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
-      		for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*loop over neurons*/
+      		for(; nstart < nstop; nstart++){ /*loop over neurons*/
+						nrnp = nrn + nstart;
             fp[99] = dt_full;
             flag = tm_ps(yp,co,yold,ynew,nrnp,fp,dt_full,order_lim);
     		  } /* end loop over neurons*/
@@ -280,13 +284,11 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
       free(nrn); free(yold); free(ynew); free(y); free(y0); free(dydt);
     	for(i=0;i<NV;i++){free(yp[i]); free(co[i]);} free(yp); free(co);
   }
+
 }
 int main(int argc, char *argv[]) {
-   //char dir[100];
-   //char *cwd;
-   // cwd = getcwd(0,0);
-   // printf("%s\n", cwd);
-  // sprintf(dir, "%s", getenv("PFSDIR"));
+
+		//for getopt
     int c = 0;
 
 
@@ -335,6 +337,30 @@ int main(int argc, char *argv[]) {
     }
     argc -= optind;
     argv += optind;
+
+		int my_rank;
+		int world_size;
+		MPI_Init(&argc, &argv);                       // Initialize MPI
+		MPI_Comm_size(MPI_COMM_WORLD, &world_size);   // get number of processes
+		MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);      // get process rank
+		int nstart;
+		int nstop;
+		int chunk = numNeurons / world_size;
+		int rem = numNeurons % world_size;
+		if(rem == 0){
+			nstart = my_rank * chunk;
+			nstop = nstart + chunk;
+		}
+		else{
+			if(my_rank == 0){
+				nstart = my_rank * chunk;
+				nstop = nstart + chunk + rem;
+			}
+			else{
+				nstart = (my_rank * chunk) + rem;
+				nstop = nstart + chunk;
+			}
+		}
       double dt;
   	  int t_end;
 
@@ -367,39 +393,42 @@ int main(int argc, char *argv[]) {
   	  double* t_cpu = malloc(3 * 1 * sizeof(double));
 
 
-  run_sim(ps_v,rk_v,bs_v,t_cpu,fp,ip);
-  if(plot == 0){
-    if(algo == 3){
+  run_sim(ps_v,rk_v,bs_v,t_cpu,fp,ip,nstart,nstop,my_rank);
 
-      FILE *ps;
-      char name1[] = "ps.txt";
-     // strcat(dir, name1);
-      ps = fopen(name1, "w");
-      for(int i = 0;i < simTime; i++){
-    		fprintf(ps,"%.1f\n", ps_v[i]);
+	if(my_rank == 0){
+	  if(plot == 0){
+	    if(algo == 3){
 
-      }
-    }
+	      FILE *ps;
+	      char name1[] = "ps.txt";
+	     // strcat(dir, name1);
+	      ps = fopen(name1, "w");
+	      for(int i = 0;i < simTime; i++){
+	    		fprintf(ps,"%.1f\n", ps_v[i]);
 
-    if(algo == 1){
-      FILE *rk;
-      char name2[] = "rk.txt";
-      rk = fopen(name2, "w");
-      for(int i = 0;i < simTime; i++){
-    		fprintf(rk,"%.1f\n", rk_v[i]);
-      }
-    }
+	      }
+	    }
 
-    if(algo == 2){
-      FILE *bs;
-      char name3[] = "bs.txt";
-      bs = fopen(name3, "w");
-      for(int i = 0;i < simTime; i++){
-    		fprintf(bs,"%.1f\n",bs_v[i]);
-      }
-    }
-  }
+	    if(algo == 1){
+	      FILE *rk;
+	      char name2[] = "rk.txt";
+	      rk = fopen(name2, "w");
+	      for(int i = 0;i < simTime; i++){
+	    		fprintf(rk,"%.1f\n", rk_v[i]);
+	      }
+	    }
 
+	    if(algo == 2){
+	      FILE *bs;
+	      char name3[] = "bs.txt";
+	      bs = fopen(name3, "w");
+	      for(int i = 0;i < simTime; i++){
+	    		fprintf(bs,"%.1f\n",bs_v[i]);
+	      }
+	    }
+	  }
+	}
+	MPI_Finalize();
   // printf("t_cpu");
   // printf("\n");
   // for(int i = 0;i < 3; i++){
