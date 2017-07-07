@@ -206,6 +206,8 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 							nrnp = &nrn[n];
 							flag = tm_ps(yp,co,yold,ynew,nrnp,fp,dt_full,order_lim);
 						}
+						//All neurons finish current time step before proceeding
+						#pragma omp barrier
 	    		  t=t_next;
 	      	} /*loop over steps*/
 	      }
@@ -262,6 +264,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 							nrnp = &nrn[n];
 	    	  		flag = tm_bs(y,y0,dydt,fp,nrnp,1); n_bs_fails+=flag;
 	    		  } /*end loop over neurons*/
+						#pragma omp barrier
 	    		  t=t_next;
 	      	}/*loop over steps*/
 	      } /*loop over t_ms*/
@@ -316,6 +319,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 							nrnp = &nrn[n];
 	    	  		tm_rk(y,y0,dydt,fp,nrnp,1);
 	    		  } /*end loop over neurons*/
+						#pragma omp barrier
 	    		  t=t_next;
 	      	} /*loop over steps*/
 	      } /*loop over t_ms*/
