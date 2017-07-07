@@ -110,8 +110,18 @@ int tm_ps(double **yp,double **co,double *yold,double *ynew,neuron_tm *nrnp,doub
 }
 
 /***********************************************************/
-void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,int *ip_in, int nstart, int nstop, int my_rank){
+void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,int *ip_in){
+	int my_rank;
+	//int world_size;
+	//int nstart;
+	//int nstop;
+	int chunk;
+	//int rem;
 
+	MPI_Comm_size(MPI_COMM_WORLD, &world_size);   // get number of processes
+	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);      // get process rank
+
+	chunk = numNeurons / world_size;
 
   int syn_seed=ip_in[0],sim_type=ip_in[1],t_end=ip_in[2];
   int in_seed=ip_in[3],ps_only=ip_in[4],n_nrn=ip_in[5],order_lim=ip_in[99];
@@ -188,8 +198,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 				ps_v[t_ms] = nrn[0].v;  //change 0 to index of neuron to be saved
       	for(step=0; step<steps_ps; step++){
       		t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
-      		for(; nstart < nstop; nstart++){ /*loop over neurons*/
-						nrnp = nrn + nstart;
+      		for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*loop over neurons*/
             fp[99] = dt_full;
             flag = tm_ps(yp,co,yold,ynew,nrnp,fp,dt_full,order_lim);
     		  } /* end loop over neurons*/
@@ -287,18 +296,25 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 
 }
 int main(int argc, char *argv[]) {
-
+	// int my_rank;
+	// int world_size;
+	// int nstart;
+	// int nstop;
+	// int chunk;
+	// int rem;
 		//for getopt
     int c = 0;
-		int my_rank;
-		int world_size;
-		int nstart;
-		int nstop;
-		int chunk;
-		int rem;
+		double dt;
+		int t_end;
+		double* fp;
+		int* ip;
+		double* ps_v;
+		double* rk_v;
+		double* bs_v;
+		double* t_cpu;
 		MPI_Init(&argc, &argv);                       // Initialize MPI
-		MPI_Comm_size(MPI_COMM_WORLD, &world_size);   // get number of processes
-		MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);      // get process rank
+		// MPI_Comm_size(MPI_COMM_WORLD, &world_size);   // get number of processes
+		// MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);      // get process rank
 
     /* ALG II: Each process is given the parameters of the simulation */
     /* Get command line options -- this follows the idiom presented in the
@@ -346,28 +362,27 @@ int main(int argc, char *argv[]) {
     argc -= optind;
     argv += optind;
 
-  	chunk = numNeurons / world_size;
-		rem = numNeurons % world_size;
-		if(rem == 0){
-			nstart = my_rank * chunk;
-			nstop = nstart + chunk;
-		}
-		else{
-			if(my_rank == 0){
-				nstart = my_rank * chunk;
-				nstop = nstart + chunk + rem;
-			}
-			else{
-				nstart = (my_rank * chunk) + rem;
-				nstop = nstart + chunk;
-			}
-		}
-      double dt;
-  	  int t_end;
+  	// chunk = numNeurons / world_size;
+		// rem = numNeurons % world_size;
+		// if(rem == 0){
+		// 	nstart = my_rank * chunk;
+		// 	nstop = nstart + chunk;
+		// }
+		// else{
+		// 	if(my_rank == 0){
+		// 		nstart = my_rank * chunk;
+		// 		nstop = nstart + chunk + rem;
+		// 	}
+		// 	else{
+		// 		nstart = (my_rank * chunk) + rem;
+		// 		nstop = nstart + chunk;
+		// 	}
+		// }
+
 
       //calloc initializes all values to 0
-  	  double* fp = (double*)calloc(100, sizeof(double));
-  	  int* ip = (int*)calloc(100, sizeof(int));
+  	  fp = (double*)calloc(100, sizeof(double));
+  	  ip = (int*)calloc(100, sizeof(int));
 
   	  ip[0] = 1;
   	  ip[2] = simTime;//Time simulation is run
@@ -388,13 +403,13 @@ int main(int argc, char *argv[]) {
   	  fp[10] = 0.01;// size of RK time step?
   	  fp[11] = 0.1; //size of time step for PS - was 0.1
 
-  	  double* ps_v = malloc(simTime * 1 * sizeof(double));
-  	  double* rk_v = malloc(simTime * 1 * sizeof(double));
-  	  double* bs_v = malloc(simTime * 1 * sizeof(double));
-  	  double* t_cpu = malloc(3 * 1 * sizeof(double));
+  	  ps_v = malloc(simTime * 1 * sizeof(double));
+  	  rk_v = malloc(simTime * 1 * sizeof(double));
+  	  bs_v = malloc(simTime * 1 * sizeof(double));
+  	  t_cpu = malloc(3 * 1 * sizeof(double));
 
 
-  run_sim(ps_v,rk_v,bs_v,t_cpu,fp,ip,nstart,nstop,my_rank);
+  run_sim(ps_v,rk_v,bs_v,t_cpu,fp,ip);
 
 	if(my_rank == 0){
 	  if(plot == 0){
@@ -429,10 +444,12 @@ int main(int argc, char *argv[]) {
 	    }
 	  }
 	}
+	free(fp);
+	free(ip);
+	free(ps_v);
+	free(rk_v);
+	free(bs_v);
+	free(t_cpu);
 	MPI_Finalize();
-  // printf("t_cpu");
-  // printf("\n");
-  // for(int i = 0;i < 3; i++){
-  //   printf("%5.2f\n",t_cpu[i]);
-  // }
+	return 0;
 }
