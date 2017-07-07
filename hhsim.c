@@ -290,7 +290,15 @@ int main(int argc, char *argv[]) {
 
 		//for getopt
     int c = 0;
-
+		int my_rank;
+		int world_size;
+		int nstart;
+		int nstop;
+		int chunk;
+		int rem;
+		MPI_Init(&argc, &argv);                       // Initialize MPI
+		MPI_Comm_size(MPI_COMM_WORLD, &world_size);   // get number of processes
+		MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);      // get process rank
 
     /* ALG II: Each process is given the parameters of the simulation */
     /* Get command line options -- this follows the idiom presented in the
@@ -338,15 +346,8 @@ int main(int argc, char *argv[]) {
     argc -= optind;
     argv += optind;
 
-		int my_rank;
-		int world_size;
-		MPI_Init(&argc, &argv);                       // Initialize MPI
-		MPI_Comm_size(MPI_COMM_WORLD, &world_size);   // get number of processes
-		MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);      // get process rank
-		int nstart;
-		int nstop;
-		int chunk = numNeurons / world_size;
-		int rem = numNeurons % world_size;
+  	chunk = numNeurons / world_size;
+		rem = numNeurons % world_size;
 		if(rem == 0){
 			nstart = my_rank * chunk;
 			nstop = nstart + chunk;
