@@ -110,19 +110,9 @@ int tm_ps(double **yp,double **co,double *yold,double *ynew,neuron_tm *nrnp,doub
 }
 
 /***********************************************************/
-void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,int *ip_in){
-	int my_rank;
-	//int world_size;
-	//int nstart;
-	//int nstop;
-	int chunk;
-	//int rem;
+void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,int *ip_in, int procnum, int numprocs){
 
-	MPI_Comm_size(MPI_COMM_WORLD, &world_size);   // get number of processes
-	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);      // get process rank
-
-	chunk = numNeurons / world_size;
-
+	//printf("start: %d, stop: %d", start, stop);
   int syn_seed=ip_in[0],sim_type=ip_in[1],t_end=ip_in[2];
   int in_seed=ip_in[3],ps_only=ip_in[4],n_nrn=ip_in[5],order_lim=ip_in[99];
   double tol=fp_in[9], dt_rk=fp_in[10], dt_ps=fp_in[11];
@@ -156,8 +146,8 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 		yp[i] = malloc((order_lim+1)*sizeof(double));
 		co[i] = malloc((order_lim+1)*sizeof(double));
 	}
-  nrn = malloc(n_nrn*sizeof(neuron_tm)); nrnx = nrn+n_nrn;
-
+  nrn = malloc(n_nrn*sizeof(neuron_tm)); //nrnx = nrn+n_nrn;
+	nrnx = nrn + ((procnum + 1) * (n_nrn/numprocs));
   /*Store constant parameters*/
 	ip[0]=sim_type; fp[17] = tol;
 
@@ -193,12 +183,13 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
       	co[6][p] = co[6][0]*cp; co[7][p] = co[7][0]*cp;	co[8][p] = co[8][0]*cp;
       	co[10][p] = co[10][0]*cp; co[11][p] = co[11][0]*cp; co[12][p] = co[12][0]*cp;
     	}
+			int i = 0;
       c0 = (double)clock();
       for(t_ms=0,t=0; t_ms<t_end; t_ms++){
 				ps_v[t_ms] = nrn[0].v;  //change 0 to index of neuron to be saved
       	for(step=0; step<steps_ps; step++){
       		t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
-      		for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*loop over neurons*/
+      		for(nrnp = nrn + (procnum * (n_nrn/numprocs)); nrnp < nrnx; nrnp++){ /*loop over neurons*/
             fp[99] = dt_full;
             flag = tm_ps(yp,co,yold,ynew,nrnp,fp,dt_full,order_lim);
     		  } /* end loop over neurons*/
@@ -296,12 +287,8 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 
 }
 int main(int argc, char *argv[]) {
-	// int my_rank;
-	// int world_size;
-	// int nstart;
-	// int nstop;
-	// int chunk;
-	// int rem;
+		int my_rank;
+		int world_size;
 		//for getopt
     int c = 0;
 		double dt;
@@ -313,8 +300,8 @@ int main(int argc, char *argv[]) {
 		double* bs_v;
 		double* t_cpu;
 		MPI_Init(&argc, &argv);                       // Initialize MPI
-		// MPI_Comm_size(MPI_COMM_WORLD, &world_size);   // get number of processes
-		// MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);      // get process rank
+		MPI_Comm_size(MPI_COMM_WORLD, &world_size);   // get number of processes
+		MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);      // get process rank
 
     /* ALG II: Each process is given the parameters of the simulation */
     /* Get command line options -- this follows the idiom presented in the
@@ -362,22 +349,6 @@ int main(int argc, char *argv[]) {
     argc -= optind;
     argv += optind;
 
-  	// chunk = numNeurons / world_size;
-		// rem = numNeurons % world_size;
-		// if(rem == 0){
-		// 	nstart = my_rank * chunk;
-		// 	nstop = nstart + chunk;
-		// }
-		// else{
-		// 	if(my_rank == 0){
-		// 		nstart = my_rank * chunk;
-		// 		nstop = nstart + chunk + rem;
-		// 	}
-		// 	else{
-		// 		nstart = (my_rank * chunk) + rem;
-		// 		nstop = nstart + chunk;
-		// 	}
-		// }
 
 
       //calloc initializes all values to 0
@@ -409,8 +380,9 @@ int main(int argc, char *argv[]) {
   	  t_cpu = malloc(3 * 1 * sizeof(double));
 
 
-  run_sim(ps_v,rk_v,bs_v,t_cpu,fp,ip);
+  run_sim(ps_v,rk_v,bs_v,t_cpu,fp,ip,my_rank,world_size);
 
+	//we only want one process to print to file, plus only proc 0 has the data for neuron 0, which is in ps_v
 	if(my_rank == 0){
 	  if(plot == 0){
 	    if(algo == 3){
