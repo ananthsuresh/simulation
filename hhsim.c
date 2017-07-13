@@ -409,13 +409,13 @@ int main(int argc, char *argv[]) {
   run_sim(ps_v,rk_v,bs_v,t_cpu,fp,ip,my_rank,world_size);
 
 	//we only want one process to print to file, plus only proc 0 has the data for neuron 0, which is in ps_v
-	//if(my_rank == 0){
+	if(my_rank == 0){
 	  if(plot == 0){
 	    if(algo == 3){
 
 	      FILE *ps;
 	      char *name1 = malloc(8 * sizeof(char));
-				sprintf(name1,"ps%d.txt",my_rank);
+				sprintf(name1,"ps.txt",my_rank);
 	      ps = fopen(name1, "w");
 	      for(int i = 0;i < simTime; i++){
 	    		fprintf(ps,"%.1f\n", ps_v[i]);
@@ -426,7 +426,7 @@ int main(int argc, char *argv[]) {
 	    if(algo == 1){
 	      FILE *rk;
 	      char *name2 = malloc(8 * sizeof(char));
-				sprintf(name2,"rk%d.txt",my_rank);
+				sprintf(name2,"rk.txt",my_rank);
 	      rk = fopen(name2, "w");
 	      for(int i = 0;i < simTime; i++){
 	    		fprintf(rk,"%.1f\n", rk_v[i]);
@@ -436,14 +436,14 @@ int main(int argc, char *argv[]) {
 	    if(algo == 2){
 	      FILE *bs;
 	      char *name3 = malloc(8 * sizeof(char));
-				sprintf(name3,"bs%d.txt",my_rank);
+				sprintf(name3,"bs.txt",my_rank);
 	      bs = fopen(name3, "w");
 	      for(int i = 0;i < simTime; i++){
 	    		fprintf(bs,"%.1f\n",bs_v[i]);
 	      }
 	    }
 	  }
-	//}
+	}
 	free(fp);
 	free(ip);
 	free(ps_v);
