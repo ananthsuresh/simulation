@@ -19,6 +19,8 @@
 
 
 #define NV 25
+#define START(nrn) nrn + (procnum * (n_nrn/numprocs))
+#define END(nrn) nrn + ((procnum + 1)* (n_nrn/numprocs))
 int numNeurons = 10;
 int simTime = 1000;
 int plot = 0;
@@ -146,7 +148,8 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 		yp[i] = malloc((order_lim+1)*sizeof(double));
 		co[i] = malloc((order_lim+1)*sizeof(double));
 	}
-  nrn = malloc(n_nrn*sizeof(neuron_tm)); nrnx = nrn+n_nrn;
+  nrn = malloc(n_nrn*sizeof(neuron_tm));
+	nrnx = END(nrn);
 
   /*Store constant parameters*/
 	ip[0]=sim_type; fp[17] = tol;
@@ -168,7 +171,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
       /************************************************************/
       printf("PS. ");
       fp[0] = dt_ps; fp[1] = co_g_ampa_ps; fp[2] = co_g_gaba_ps;
-      for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*Initialise neuron structure*/
+      for(nrnp = START(nrn); nrnp < nrnx; nrnp++){ /*Initialise neuron structure*/
     		nrnp->v = fp_in[0]; nrnp->n = fp_in[1]; nrnp->m = fp_in[2];
     		nrnp->h = fp_in[3];	nrnp->a = fp_in[4];	nrnp->b = fp_in[5];
     		nrnp->c = fp_in[6];	nrnp->d = fp_in[7];	nrnp->I = fp_in[8];
@@ -183,13 +186,13 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
       	co[10][p] = co[10][0]*cp; co[11][p] = co[11][0]*cp; co[12][p] = co[12][0]*cp;
     	}
 			int i = 0;
-			nrnx = nrn + ((procnum + 1)* (n_nrn/numprocs));
+
       c0 = MPI_Wtime();
       for(t_ms=0,t=0; t_ms<t_end; t_ms++){
 				ps_v[t_ms] = nrn[(procnum * (n_nrn/numprocs))].v;  //change first neuron of processor to index of neuron to be saved
       	for(step=0; step<steps_ps; step++){
       		t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
-      		for(nrnp = nrn + (procnum * (n_nrn/numprocs)); nrnp < nrnx; nrnp++){ /*loop over neurons*/
+      		for(nrnp = START(nrn); nrnp < nrnx; nrnp++){ /*loop over neurons*/
             fp[99] = dt_full;
             flag = tm_ps(yp,co,yold,ynew,nrnp,fp,dt_full,order_lim);
     		  } /* end loop over neurons*/
@@ -215,29 +218,32 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
     	/************************************************************/
       /********************* Bulirsch-Stoer ***********************/
       /************************************************************/
+			int totalflags = 0;
 			fp[17] = tol;
 			fp[0] = dt_ps; fp[1] = co_g_ampa_ps; fp[2] = co_g_gaba_ps;
 			fp[7]=dt_full;
 			fp[99] = dt_full;
       printf("BS. ");
-      for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*Initialise neuron structure*/
+      for(nrnp = START(nrn); nrnp < nrnx; nrnp++){ /*Initialise neuron structure*/
     		nrnp->v = fp_in[0]; nrnp->n = fp_in[1]; nrnp->m = fp_in[2]; nrnp->h = fp_in[3];
     		nrnp->g_ampa = 0.0; nrnp->g_gaba = 0.0; nrnp->I = fp_in[8];
     	}
-      c0 = (double)clock();
+      c0 = MPI_Wtime();
       for(t_ms=0,t=0; t_ms<t_end; t_ms++){
       	if(ps_only==1) break;
-      	bs_v[t_ms] = nrn[0].v;
+      	bs_v[t_ms] = nrn[(procnum * (n_nrn/numprocs))].v;
       	for(step=0; step<steps_ps; step++){
       		t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
-    	  	for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*loop over neurons*/
+    	  	for(nrnp = START(nrn); nrnp < nrnx; nrnp++){ /*loop over neurons*/
     	  		flag = tm_bs(y,y0,dydt,fp,nrnp,1); n_bs_fails+=flag;
     		  } /*end loop over neurons*/
+					MPI_Barrier(MPI_COMM_WORLD);
     		  t=t_next;
       	}/*loop over steps*/
       } /*loop over t_ms*/
-      c1 = (double)clock();
-      t_cpu[1] = (double)(c1 - c0)/(CLOCKS_PER_SEC);
+      c1 = MPI_Wtime();
+			MPI_Allreduce(&n_bs_fails, &totalflags, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+      t_cpu[1] = (c1 - c0);
     	printf("Time = %5.2f. \t",t_cpu[1]);
     	printf("n BS fails = %d.\n",n_bs_fails); fflush(stdout);
       if(plot == 1){
@@ -262,7 +268,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
     		nrnp->v = fp_in[0]; nrnp->n = fp_in[1]; nrnp->m = fp_in[2]; nrnp->h = fp_in[3];
     		nrnp->g_ampa = 0.0; nrnp->g_gaba = 0.0; nrnp->I = fp_in[8];
     	}
-      c0 = (double)clock();
+      c0 = MPI_Wtime();
       for(t_ms=0,t=0; t_ms<t_end; t_ms++){
       	if(ps_only==1) break;
       	rk_v[t_ms] = nrn[0].v;
@@ -274,7 +280,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
     		  t=t_next;
       	} /*loop over steps*/
       } /*loop over t_ms*/
-      c1 = (double)clock();
+      c1 = MPI_Wtime();
       t_cpu[2] = (double)(c1 - c0)/(CLOCKS_PER_SEC);
       printf("Time = %5.2f. \n",t_cpu[2]); fflush(stdout);
       if(plot == 1){
