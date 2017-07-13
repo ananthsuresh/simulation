@@ -225,6 +225,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
         char timeName3[] = "pstime.txt";
         pstime = fopen(timeName3, "ab+");
         fprintf(pstime,"%d %5.2f\n", numNeurons, t_cpu[0]);
+				fclose(pstime);
       }
 		}
 
@@ -282,6 +283,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
         char timeName2[] = "bstime.txt";
         bstime = fopen(timeName2, "ab+");
         fprintf(bstime,"%d %5.2f\n", numNeurons, t_cpu[1]);
+				fclose(bstime);
       }
   }
 
@@ -336,6 +338,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
         char timeName1[] = "rktime.txt";
         rktime = fopen(timeName1, "ab+");
         fprintf(rktime,"%d %5.2f\n", numNeurons, t_cpu[2]);
+				fclose(rktime);
       }
 
     	/*Free dynamic arrays*/
