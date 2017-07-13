@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=10
-#SBATCH --output=coreconsole.txt
+#SBATCH --output=coreconsoleomp.txt
 
 module load python
 cp *.c $PFSDIR/.
