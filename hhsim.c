@@ -264,7 +264,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 			fp[17] = tol;
 			fp[7]=dt_full;
 			fp[99] = dt_full;
-      for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*Initialise neuron structure*/
+      for(nrnp = START(nrn); nrnp < nrnx; nrnp++){ /*Initialise neuron structure*/
     		nrnp->v = fp_in[0]; nrnp->n = fp_in[1]; nrnp->m = fp_in[2]; nrnp->h = fp_in[3];
     		nrnp->g_ampa = 0.0; nrnp->g_gaba = 0.0; nrnp->I = fp_in[8];
     	}
@@ -274,9 +274,10 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
       	rk_v[t_ms] = nrn[0].v;
       	for(step=0; step<steps_rk; step++){
       		t_next = (double)t_ms + (step+1)*dt_rk;/*end of current time step*/
-    	  	for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*loop over neurons*/
+    	  	for(nrnp = START(nrn); nrnp < nrnx; nrnp++){ /*loop over neurons*/
     	  		tm_rk(y,y0,dydt,fp,nrnp,1);
     		  } /*end loop over neurons*/
+					MPI_Barrier(MPI_COMM_WORLD);
     		  t=t_next;
       	} /*loop over steps*/
       } /*loop over t_ms*/
@@ -409,7 +410,8 @@ int main(int argc, char *argv[]) {
 
 	    if(algo == 1){
 	      FILE *rk;
-	      char name2[] = "rk.txt";
+	      char *name2 = malloc(8 * sizeof(char));
+				sprintf(name2,"rk%d.txt",my_rank);
 	      rk = fopen(name2, "w");
 	      for(int i = 0;i < simTime; i++){
 	    		fprintf(rk,"%.1f\n", rk_v[i]);
@@ -418,7 +420,8 @@ int main(int argc, char *argv[]) {
 
 	    if(algo == 2){
 	      FILE *bs;
-	      char name3[] = "bs.txt";
+	      char *name3 = malloc(8 * sizeof(char));
+				sprintf(name3,"bs%d.txt",my_rank);
 	      bs = fopen(name3, "w");
 	      for(int i = 0;i < simTime; i++){
 	    		fprintf(bs,"%.1f\n",bs_v[i]);
