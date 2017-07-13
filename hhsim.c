@@ -216,6 +216,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 	        pstime = fopen(timeName3, "ab+");
 	        fprintf(pstime,"%d %5.2f\n", numNeurons, t_cpu[0]);
 	      }
+				fclose(pstime);
 			}
   }
 
@@ -261,6 +262,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 	        bstime = fopen(timeName2, "ab+");
 	        fprintf(bstime,"%d %5.2f\n", numNeurons, t_cpu[1]);
 	      }
+				fclose(bstime);
 			}
   }
 
@@ -304,6 +306,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 	        rktime = fopen(timeName1, "ab+");
 	        fprintf(rktime,"%d %5.2f\n", numNeurons, t_cpu[2]);
 	      }
+				fclose(rktime);
 			}
 
     	/*Free dynamic arrays*/
@@ -421,6 +424,7 @@ int main(int argc, char *argv[]) {
 	    		fprintf(ps,"%.1f\n", ps_v[i]);
 
 	      }
+				fclose(ps);
 	    }
 
 	    if(algo == 1){
@@ -431,6 +435,7 @@ int main(int argc, char *argv[]) {
 	      for(int i = 0;i < simTime; i++){
 	    		fprintf(rk,"%.1f\n", rk_v[i]);
 	      }
+				fclose(rk);
 	    }
 
 	    if(algo == 2){
@@ -441,6 +446,7 @@ int main(int argc, char *argv[]) {
 	      for(int i = 0;i < simTime; i++){
 	    		fprintf(bs,"%.1f\n",bs_v[i]);
 	      }
+				fclose(bs);
 	    }
 	  }
 	}
