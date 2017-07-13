@@ -204,14 +204,19 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
       	} /*loop over steps*/
       } /*loop over t_ms*/
       c1 = MPI_Wtime();
-      t_cpu[0] = c1 - c0;
+			double proctime = c1 - c0;
+			double maxtime;
+			MPI_Allreduce(&proctime, &maxtime, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+      t_cpu[0] = maxtime;
       printf("Time = %5.2f. \n",t_cpu[0]); fflush(stdout);
-      if(plot == 1){
-        FILE *pstime;
-        char timeName3[] = "pstime.txt";
-        pstime = fopen(timeName3, "ab+");
-        fprintf(pstime,"%d %5.2f\n", numNeurons, t_cpu[0]);
-      }
+			if(procnum == 0){
+	      if(plot == 1){
+	        FILE *pstime;
+	        char timeName3[] = "pstime.txt";
+	        pstime = fopen(timeName3, "ab+");
+	        fprintf(pstime,"%d %5.2f\n", numNeurons, t_cpu[0]);
+	      }
+			}
   }
 
   if(algo == 2){
@@ -243,15 +248,20 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
       } /*loop over t_ms*/
       c1 = MPI_Wtime();
 			MPI_Allreduce(&n_bs_fails, &totalflags, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-      t_cpu[1] = (c1 - c0);
+			double proctime = c1 - c0;
+			double maxtime;
+			MPI_Allreduce(&proctime, &maxtime, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+      t_cpu[1] = maxtime;
     	printf("Time = %5.2f. \t",t_cpu[1]);
     	printf("n BS fails = %d.\n",n_bs_fails); fflush(stdout);
-      if(plot == 1){
-        FILE *bstime;
-        char timeName2[] = "bstime.txt";
-        bstime = fopen(timeName2, "ab+");
-        fprintf(bstime,"%d %5.2f\n", numNeurons, t_cpu[1]);
-      }
+			if(procnum == 0){
+	      if(plot == 1){
+	        FILE *bstime;
+	        char timeName2[] = "bstime.txt";
+	        bstime = fopen(timeName2, "ab+");
+	        fprintf(bstime,"%d %5.2f\n", numNeurons, t_cpu[1]);
+	      }
+			}
   }
 
   if(algo == 1){
@@ -271,7 +281,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
       c0 = MPI_Wtime();
       for(t_ms=0,t=0; t_ms<t_end; t_ms++){
       	if(ps_only==1) break;
-      	rk_v[t_ms] = nrn[0].v;
+      	rk_v[t_ms] = nrn[(procnum * (n_nrn/numprocs))].v;
       	for(step=0; step<steps_rk; step++){
       		t_next = (double)t_ms + (step+1)*dt_rk;/*end of current time step*/
     	  	for(nrnp = START(nrn); nrnp < nrnx; nrnp++){ /*loop over neurons*/
@@ -282,14 +292,19 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
       	} /*loop over steps*/
       } /*loop over t_ms*/
       c1 = MPI_Wtime();
-      t_cpu[2] = (c1 - c0);
+			double proctime = c1 - c0;
+			double maxtime;
+			MPI_Allreduce(&proctime, &maxtime, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+      t_cpu[2] = maxtime;
       printf("Time = %5.2f. \n",t_cpu[2]); fflush(stdout);
-      if(plot == 1){
-      	FILE *rktime;
-        char timeName1[] = "rktime.txt";
-        rktime = fopen(timeName1, "ab+");
-        fprintf(rktime,"%d %5.2f\n", numNeurons, t_cpu[2]);
-      }
+			if(procnum == 0){
+	      if(plot == 1){
+	      	FILE *rktime;
+	        char timeName1[] = "rktime.txt";
+	        rktime = fopen(timeName1, "ab+");
+	        fprintf(rktime,"%d %5.2f\n", numNeurons, t_cpu[2]);
+	      }
+			}
 
     	/*Free dynamic arrays*/
       free(nrn); free(yold); free(ynew); free(y); free(y0); free(dydt);
