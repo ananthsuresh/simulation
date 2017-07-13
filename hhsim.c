@@ -169,7 +169,9 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
       /************************************************************/
       /************* Adaptive Parker-Sochacki Method **************/
       /************************************************************/
-      printf("PS. ");
+			if(procnum == 0){
+				printf("PS. ");
+			}
       fp[0] = dt_ps; fp[1] = co_g_ampa_ps; fp[2] = co_g_gaba_ps;
       for(nrnp = START(nrn); nrnp < nrnx; nrnp++){ /*Initialise neuron structure*/
     		nrnp->v = fp_in[0]; nrnp->n = fp_in[1]; nrnp->m = fp_in[2];
@@ -208,8 +210,8 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 			double maxtime;
 			MPI_Allreduce(&proctime, &maxtime, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
       t_cpu[0] = maxtime;
-      printf("Time = %5.2f. \n",t_cpu[0]); fflush(stdout);
 			if(procnum == 0){
+				printf("Time = %5.2f. \n",t_cpu[0]); fflush(stdout);
 	      if(plot == 1){
 	        FILE *pstime;
 	        char timeName3[] = "pstime.txt";
@@ -253,9 +255,9 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 			double maxtime;
 			MPI_Allreduce(&proctime, &maxtime, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
       t_cpu[1] = maxtime;
-    	printf("Time = %5.2f. \t",t_cpu[1]);
-    	printf("n BS fails = %d.\n",n_bs_fails); fflush(stdout);
 			if(procnum == 0){
+				printf("Time = %5.2f. \t",t_cpu[1]);
+				printf("n BS fails = %d.\n",n_bs_fails); fflush(stdout);
 	      if(plot == 1){
 	        FILE *bstime;
 	        char timeName2[] = "bstime.txt";
@@ -298,8 +300,8 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 			double maxtime;
 			MPI_Allreduce(&proctime, &maxtime, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
       t_cpu[2] = maxtime;
-      printf("Time = %5.2f. \n",t_cpu[2]); fflush(stdout);
 			if(procnum == 0){
+				printf("Time = %5.2f. \n",t_cpu[2]); fflush(stdout);
 	      if(plot == 1){
 	      	FILE *rktime;
 	        char timeName1[] = "rktime.txt";
