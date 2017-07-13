@@ -146,8 +146,8 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 		yp[i] = malloc((order_lim+1)*sizeof(double));
 		co[i] = malloc((order_lim+1)*sizeof(double));
 	}
-  nrn = malloc(n_nrn*sizeof(neuron_tm)); //nrnx = nrn+n_nrn;
-	nrnx = nrn + ((procnum + 1) * (n_nrn/numprocs));
+  nrn = malloc(n_nrn*sizeof(neuron_tm)); nrnx = nrn+n_nrn;
+
   /*Store constant parameters*/
 	ip[0]=sim_type; fp[17] = tol;
 
@@ -163,7 +163,6 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
   co[10][0] = co_e; co[11][0] = co_f; co[12][0] = co_g;
 
   if(algo == 3){
-
       /************************************************************/
       /************* Adaptive Parker-Sochacki Method **************/
       /************************************************************/
@@ -184,9 +183,10 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
       	co[10][p] = co[10][0]*cp; co[11][p] = co[11][0]*cp; co[12][p] = co[12][0]*cp;
     	}
 			int i = 0;
-      c0 = (double)clock();
+			nrnx = nrn + ((procnum + 1)* (n_nrn/numprocs));
+      c0 = MPI_Wtime();
       for(t_ms=0,t=0; t_ms<t_end; t_ms++){
-				ps_v[t_ms] = nrn[0].v;  //change 0 to index of neuron to be saved
+				ps_v[t_ms] = nrn[(procnum * (n_nrn/numprocs))].v;  //change first neuron of processor to index of neuron to be saved
       	for(step=0; step<steps_ps; step++){
       		t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
       		for(nrnp = nrn + (procnum * (n_nrn/numprocs)); nrnp < nrnx; nrnp++){ /*loop over neurons*/
@@ -196,8 +196,8 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
     		  t=t_next;
       	} /*loop over steps*/
       } /*loop over t_ms*/
-      c1 = (double)clock();
-      t_cpu[0] = (double)(c1 - c0)/(CLOCKS_PER_SEC);
+      c1 = MPI_Wtime();
+      t_cpu[0] = c1 - c0;
       printf("Time = %5.2f. \n",t_cpu[0]); fflush(stdout);
       if(plot == 1){
         FILE *pstime;
@@ -383,13 +383,13 @@ int main(int argc, char *argv[]) {
   run_sim(ps_v,rk_v,bs_v,t_cpu,fp,ip,my_rank,world_size);
 
 	//we only want one process to print to file, plus only proc 0 has the data for neuron 0, which is in ps_v
-	if(my_rank == 0){
+	//if(my_rank == 0){
 	  if(plot == 0){
 	    if(algo == 3){
 
 	      FILE *ps;
-	      char name1[] = "ps.txt";
-	     // strcat(dir, name1);
+	      char *name1 = malloc(8 * sizeof(char));
+				sprintf(name1,"ps%d.txt",my_rank);
 	      ps = fopen(name1, "w");
 	      for(int i = 0;i < simTime; i++){
 	    		fprintf(ps,"%.1f\n", ps_v[i]);
@@ -415,7 +415,7 @@ int main(int argc, char *argv[]) {
 	      }
 	    }
 	  }
-	}
+	//}
 	free(fp);
 	free(ip);
 	free(ps_v);
