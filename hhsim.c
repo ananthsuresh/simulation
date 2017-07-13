@@ -193,6 +193,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
             fp[99] = dt_full;
             flag = tm_ps(yp,co,yold,ynew,nrnp,fp,dt_full,order_lim);
     		  } /* end loop over neurons*/
+					MPI_BARRIER(MPI_COMM_WORLD);
     		  t=t_next;
       	} /*loop over steps*/
       } /*loop over t_ms*/
