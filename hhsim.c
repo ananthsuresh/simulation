@@ -281,7 +281,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
       	} /*loop over steps*/
       } /*loop over t_ms*/
       c1 = MPI_Wtime();
-      t_cpu[2] = (double)(c1 - c0)/(CLOCKS_PER_SEC);
+      t_cpu[2] = (c1 - c0);
       printf("Time = %5.2f. \n",t_cpu[2]); fflush(stdout);
       if(plot == 1){
       	FILE *rktime;
