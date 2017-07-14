@@ -420,7 +420,7 @@ int main(int argc, char *argv[]) {
 
 	      FILE *ps;
 	      char *name1 = malloc(8 * sizeof(char));
-				sprintf(name1,"ps.txt",my_rank);
+				sprintf(name1,"ps.txt");
 	      ps = fopen(name1, "w");
 	      for(int i = 0;i < simTime; i++){
 	    		fprintf(ps,"%.1f\n", ps_v[i]);
@@ -432,7 +432,7 @@ int main(int argc, char *argv[]) {
 	    if(algo == 1){
 	      FILE *rk;
 	      char *name2 = malloc(8 * sizeof(char));
-				sprintf(name2,"rk.txt",my_rank);
+				sprintf(name2,"rk.txt");
 	      rk = fopen(name2, "w");
 	      for(int i = 0;i < simTime; i++){
 	    		fprintf(rk,"%.1f\n", rk_v[i]);
@@ -443,7 +443,7 @@ int main(int argc, char *argv[]) {
 	    if(algo == 2){
 	      FILE *bs;
 	      char *name3 = malloc(8 * sizeof(char));
-				sprintf(name3,"bs.txt",my_rank);
+				sprintf(name3,"bs.txt");
 	      bs = fopen(name3, "w");
 	      for(int i = 0;i < simTime; i++){
 	    		fprintf(bs,"%.1f\n",bs_v[i]);
