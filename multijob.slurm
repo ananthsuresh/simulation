@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --nodes=1
-#SBATCH -c 10
-#SBATCH -n 10
+#SBATCH -c 4
+#SBATCH -n 4
 
 module load git
 cp *.c $PFSDIR/.
