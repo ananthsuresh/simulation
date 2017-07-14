@@ -200,6 +200,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
         char timeName3[] = "pstime.txt";
         pstime = fopen(timeName3, "ab+");
         fprintf(pstime,"%d %5.2f\n", numNeurons, t_cpu[0]);
+				fclose(pstime);
       }
   }
 
@@ -237,6 +238,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
         char timeName2[] = "bstime.txt";
         bstime = fopen(timeName2, "ab+");
         fprintf(bstime,"%d %5.2f\n", numNeurons, t_cpu[1]);
+				fclose(bstime);
       }
   }
 
@@ -274,12 +276,12 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
         char timeName1[] = "rktime.txt";
         rktime = fopen(timeName1, "ab+");
         fprintf(rktime,"%d %5.2f\n", numNeurons, t_cpu[2]);
+				fclose(rktime);
       }
-
-    	/*Free dynamic arrays*/
-      free(nrn); free(yold); free(ynew); free(y); free(y0); free(dydt);
-    	for(i=0;i<NV;i++){free(yp[i]); free(co[i]);} free(yp); free(co);
   }
+	 /*Free dynamic arrays*/
+	 free(nrn); free(yold); free(ynew); free(y); free(y0); free(dydt);
+	 for(i=0;i<NV;i++){free(yp[i]); free(co[i]);} free(yp); free(co);
 }
 int main(int argc, char *argv[]) {
    //char dir[100];
@@ -377,8 +379,8 @@ int main(int argc, char *argv[]) {
       ps = fopen(name1, "w");
       for(int i = 0;i < simTime; i++){
     		fprintf(ps,"%.1f\n", ps_v[i]);
-
       }
+			fclose(ps);
     }
 
     if(algo == 1){
@@ -388,6 +390,7 @@ int main(int argc, char *argv[]) {
       for(int i = 0;i < simTime; i++){
     		fprintf(rk,"%.1f\n", rk_v[i]);
       }
+			fclose(rk);
     }
 
     if(algo == 2){
@@ -397,12 +400,9 @@ int main(int argc, char *argv[]) {
       for(int i = 0;i < simTime; i++){
     		fprintf(bs,"%.1f\n",bs_v[i]);
       }
+			fclose(bs);
     }
   }
+	
 
-  // printf("t_cpu");
-  // printf("\n");
-  // for(int i = 0;i < 3; i++){
-  //   printf("%5.2f\n",t_cpu[i]);
-  // }
 }
