@@ -467,6 +467,12 @@ int main(int argc, char *argv[]) {
 			fclose(bs);
     }
   }
+	free(fp);
+	free(ip);
+	free(ps_v);
+	free(rk_v);
+	free(bs_v);
+	free(t_cpu);
 
 
 }
