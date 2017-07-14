@@ -1,6 +1,4 @@
 #!/bin/bash
-#SBATCH --nodelist=comp189t
-
 module load git
 cp *.c $PFSDIR/.
 cp Makefile $PFSDIR/.
