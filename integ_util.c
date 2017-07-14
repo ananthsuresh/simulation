@@ -128,13 +128,10 @@ void rk_step(double *y,double *y0,double *dydt0,int nv,
       //fprintf(stderr, "works on thread %d\n", omp_get_thread_num());
     } /*1*/
 		derivs(y, dydt, fp); /*2*/
-   // #pragma omp parallel for
 		for(i=0;i<nv;i++){rk2[i] = dydt[i]; y[i] = y0[i] + dt2*dydt[i];}
 		derivs(y, dydt, fp); /*3*/
-    //#pragma omp parallel for
 		for(i=0;i<nv;i++){rk3[i] = dydt[i]; y[i] = y0[i] + dt*dydt[i];}
 		derivs(y, dydt, fp); /*4*/
-    //#pragma omp parallel for
 		for(i=0;i<nv;i++)y[i] = y0[i] + dt6*(rk1[i]+dydt[i]+2*(rk2[i]+rk3[i]));
     free(rk1);free(rk2);free(rk3);free(dydt);
 }
