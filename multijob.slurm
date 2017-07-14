@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --nodes=1
-#SBATCH --cpus-per-task=10
-#SBATCH --ntasks-per-node=10
+#SBATCH -c 10
+#SBATCH -n 10
 
 module load git
 cp *.c $PFSDIR/.
