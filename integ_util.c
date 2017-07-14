@@ -8,7 +8,7 @@
 #include <string.h>
 /*Parker-Sochacki stepper - Solve and update in one function*/
 int ps_step(double **y,double **co,double *y1,double *ynew,double *fp,
-  double eta[],void (*first)(double **,double **,double *), 
+  double eta[],void (*first)(double **,double **,double *),
 	void (*iter)(double **,double **,double *,int),int stop,int ps_limit, int nv, int err_nv){
   int i,p; double dt=fp[99], dt_pow;
 	first(y,co,fp); /*Calculate first order terms*/
@@ -30,7 +30,7 @@ int ps_step(double **y,double **co,double *y1,double *ynew,double *fp,
 
 /*Parker-Sochacki stepper - zero tolerance version*/
 int ps_step0(double **y,double **co,double *y1,double *ynew,double *fp,
-  void (*first)(double **,double **,double *), 
+  void (*first)(double **,double **,double *),
 	void (*iter)(double **,double **,double *,int),int stop,int ps_limit, int nv, int err_nv){
   int i,p; double dt=fp[99], dt_pow;
   first(y,co,fp); /*Calculate first order terms*/
@@ -51,7 +51,7 @@ int ps_step0(double **y,double **co,double *y1,double *ynew,double *fp,
 
 void ps_update(double **y,int var,int ps_order,double dt,double *ynew){
 	int i;
-	if(dt == 1){for(i=1,*ynew=y[var][0];i<=ps_order;i++)*ynew+=y[var][i];} 
+	if(dt == 1){for(i=1,*ynew=y[var][0];i<=ps_order;i++)*ynew+=y[var][i];}
 	else{ /*Use Horner's method*/
 		*ynew=y[var][ps_order]*dt+y[var][ps_order-1];
 		for(i=ps_order-2;i>=0;i--){*ynew=y[var][i]+*ynew*dt;}
@@ -59,7 +59,7 @@ void ps_update(double **y,int var,int ps_order,double dt,double *ynew){
 }
 
 void cauchy_prod(int p,double *a,double a0,double *b,double b0,double *c){
-	/*c is the pth term of the Cauchy product of a and b with zeroth order 
+	/*c is the pth term of the Cauchy product of a and b with zeroth order
 	terms a0, b0 allowing shifted products (e.g (a-1)*(b+1))*/
  	int i;
  	*c = a0*b[p] + b0*a[p];
@@ -73,7 +73,7 @@ void cauchy_prod_basic(int p,double *a,double *b,double *c){
 	for(i = 1; i < p; i++){*c += a[i]*b[p-i];}
 }
 
-void cauchy_prod_signed(int p,double *a,double a0,int sign_a, 
+void cauchy_prod_signed(int p,double *a,double a0,int sign_a,
 	double *b,double b0,int sign_b,double *c){
 	/*Cauchy product with sign parameters to allow negative series*/
  	int i;
@@ -91,7 +91,7 @@ void cauchy_prod_signed(int p,double *a,double a0,int sign_a,
  	}
 }
 //was double return type?//
-void cauchy_prod_gain(int p,double *a,double a0,double gain_a, 
+void cauchy_prod_gain(int p,double *a,double a0,double gain_a,
 	double *b,double b0,double gain_b,double *c){
 	/*Cauchy product with gain parameters to allow multiples of series*/
  	int i;
@@ -110,30 +110,29 @@ void series_pow(int p,double *a,double a0,double *b,double b0,double x){
 	/*calculates pth coefficient of b = a^x*/
 	int i;
 	b[p] = x*a[p]*b0; /*i=p special case*/
-	for(i=1;i<p;i++){b[p] += ((x+1)*(double)i/(double)p - 1)*a[i]*b[p-i];} 
+	for(i=1;i<p;i++){b[p] += ((x+1)*(double)i/(double)p - 1)*a[i]*b[p-i];}
 	b[p] /= a0;
 }
 
 /*Non-adaptive 4th order Runge-Kutta stepper*/
-void rk_step(double *y,double *y0,double *dydt0,int nv, 
+void rk_step(double *y,double *y0,double *dydt0,int nv,
 	double *fp,double dt,void (*derivs)(double *,double *,double *)){
     double dt2 = dt/2; double dt6 = dt/6;
-		int i; 
+		int i;
     double *rk1,*rk2,*rk3,*dydt;
     rk1 = malloc(nv*sizeof(double)); rk2 = malloc(nv*sizeof(double));
     rk3 = malloc(nv*sizeof(double)); dydt = malloc(nv*sizeof(double));
-    #pragma omp parallel for
 		for(i=0;i<nv;i++){
-      rk1[i] = dydt0[i]; 
+      rk1[i] = dydt0[i];
       y[i] = y0[i] + dt2*dydt0[i];
       //fprintf(stderr, "works on thread %d\n", omp_get_thread_num());
     } /*1*/
 		derivs(y, dydt, fp); /*2*/
    // #pragma omp parallel for
-		for(i=0;i<nv;i++){rk2[i] = dydt[i]; y[i] = y0[i] + dt2*dydt[i];}		
+		for(i=0;i<nv;i++){rk2[i] = dydt[i]; y[i] = y0[i] + dt2*dydt[i];}
 		derivs(y, dydt, fp); /*3*/
     //#pragma omp parallel for
-		for(i=0;i<nv;i++){rk3[i] = dydt[i]; y[i] = y0[i] + dt*dydt[i];}	
+		for(i=0;i<nv;i++){rk3[i] = dydt[i]; y[i] = y0[i] + dt*dydt[i];}
 		derivs(y, dydt, fp); /*4*/
     //#pragma omp parallel for
 		for(i=0;i<nv;i++)y[i] = y0[i] + dt6*(rk1[i]+dydt[i]+2*(rk2[i]+rk3[i]));
@@ -158,11 +157,11 @@ void mmid(double *y,double *dydt,int nv,double htot,int nstep,double *yout,doubl
 }
 
 /*NR polynomial extrapolation function - For Bulirsch-Stoer*/
-void pzextr(int iest,double xest,double *yest,double *yz,double *yerr, 
+void pzextr(int iest,double xest,double *yest,double *yz,double *yerr,
   int nv,double *x,double **d){
-/*Evaluate nv functions at x=0 by fitting a	polynomial to a sequence of estimates with 
-progressively smaller values x = xest, and corresponding function vectors yest[1..nv]. 
-This call is number iest in the sequence of calls. Extrapolated function values are 
+/*Evaluate nv functions at x=0 by fitting a	polynomial to a sequence of estimates with
+progressively smaller values x = xest, and corresponding function vectors yest[1..nv].
+This call is number iest in the sequence of calls. Extrapolated function values are
 output as yz, and their estimated error is output as yerr.*/
 	int k1,j;	double q,f2,f1,delta,*c;
   c = malloc(nv*sizeof(double));
