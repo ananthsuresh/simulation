@@ -165,7 +165,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 			double timetaken;
 
 			//keeping shared variables private, reduction times only slowest thread
-			#pragma omp parallel private(t_ms,t,t_next,step,i,p,cp,nrnp,flag) reduction(max:timetaken)
+			#pragma omp parallel private(t_ms,t,t_next,step,i,p,cp,nrnp,flag) //reduction(max:timetaken)
 			{
 				double *yold = calloc(NV, sizeof(double));
 				double *ynew = calloc(NV, sizeof(double));
@@ -218,8 +218,12 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 				free(yold); free(ynew);
 				for(i=0;i<NV;i++){free(yp[i]); free(co[i]);} free(yp); free(co);
 			}
-      t_cpu[0] = timetaken;
-      printf("Time = %5.2f. \n",t_cpu[0]); fflush(stdout);
+			//only times thread 0, we have the barrier so we're assuming times should be the same
+			if(tid == 0){
+				t_cpu[0] = timetaken;
+			}
+			printf("Time = %5.2f. \n",t_cpu[0]); fflush(stdout);
+
       if(plot == 1){
         FILE *pstime;
         char timeName3[] = "pstime.txt";
