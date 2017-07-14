@@ -1,7 +1,5 @@
 #!/bin/bash
-#SBATCH --nodes=1
-#SBATCH -c 8
-#SBATCH -n 8
+#SBATCH --nodelist=comp189t
 
 module load git
 cp *.c $PFSDIR/.
@@ -20,6 +18,8 @@ git checkout openmp
 make hpc
 
 echo OMP JOBS
+export SLURM_NTASKS=1
+export SLURM_CPUS_PER_TASK=10
 export OMP_NUM_THREADS=1
 echo 1 thread
 ./hhsim.exe -n 2000
@@ -59,7 +59,8 @@ echo 10 threads
 rm *.exe
 git checkout mpi
 make clean
-
+export SLURM_NTASKS=10
+export SLURM_CPUS_PER_TASK=1
 echo 1 Processor
 mpiexec -n 1 hhsim.exe -n 2000
 mpiexec -n 1 hhsim.exe -n 4000
