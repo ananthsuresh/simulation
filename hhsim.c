@@ -162,7 +162,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
     	}
     	dt_full=1; /*time rescaling*/
 
-			double timetaken;
+			double timetaken = 0;
 
 			//keeping shared variables private, reduction times only slowest thread
 			#pragma omp parallel private(t_ms,t,t_next,step,i,p,cp,nrnp,flag) reduction(max:timetaken)
@@ -214,7 +214,6 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
 
 				double endtime = omp_get_wtime();
 				timetaken = endtime - startime;
-				// printf("timetaken is %f for thread %d \n", timetaken, tid);
 				free(yold); free(ynew);
 				for(i=0;i<NV;i++){free(yp[i]); free(co[i]);} free(yp); free(co);
 			}
