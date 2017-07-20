@@ -109,7 +109,7 @@ int tm_ps(double **yp,double **co,double *yold,double *ynew,neuron_tm *nrnp,doub
 }
 
 /***********************************************************/
-void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,int *ip_in){
+void run_sim(double *ps_v,double *ps_v2,double *ps_v3,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,int *ip_in){
   int syn_seed=ip_in[0],sim_type=ip_in[1],t_end=ip_in[2];
   int in_seed=ip_in[3],ps_only=ip_in[4],n_nrn=ip_in[5],order_lim=ip_in[99];
   double tol=fp_in[9], dt_rk=fp_in[10], dt_ps=fp_in[11];
@@ -160,7 +160,7 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
   co[10][0] = co_e; co[11][0] = co_f; co[12][0] = co_g;
 
   if(algo == 3){
-
+			int index = 0;
       /************************************************************/
       /************* Adaptive Parker-Sochacki Method **************/
       /************************************************************/
@@ -169,8 +169,19 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
       for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*Initialise neuron structure*/
     		nrnp->v = fp_in[0]; nrnp->n = fp_in[1]; nrnp->m = fp_in[2];
     		nrnp->h = fp_in[3];	nrnp->a = fp_in[4];	nrnp->b = fp_in[5];
-    		nrnp->c = fp_in[6];	nrnp->d = fp_in[7];	nrnp->I = fp_in[8];
+    		nrnp->c = fp_in[6];	nrnp->d = fp_in[7];	//nrnp->I = fp_in[8];
     		nrnp->g_ampa = 0.0; nrnp->g_gaba = 0.0;
+				nrnp->myLastV=fp_in[0];
+				if(index == 0){
+					nrnp->source = n_nrn - 1;
+					nrnp->I = fp_in[8];
+				}
+				else{
+					nrnp->source = index - 1;
+					nrnp->I = 0;
+				}
+				//printf("Neuron %d's source is %d \n", index, nrnp->source);
+				index++;
     	}
     	dt_full=1; /*time rescaling*/ fp[7]=dt_full;
     	for(p = 1; p < order_lim; p++){
@@ -182,10 +193,20 @@ void run_sim(double *ps_v,double *rk_v,double *bs_v,double *t_cpu,double *fp_in,
     	}
       c0 = (double)clock();
       for(t_ms=0,t=0; t_ms<t_end; t_ms++){
-      	ps_v[t_ms] = nrn[0].v;  //change 0 to index of neuron to be saved
+				ps_v[t_ms] = nrn[0].v;  //change 0 to index of neuron to be saved
+				ps_v2[t_ms] = nrn[1].v;
+				ps_v3[t_ms] = nrn[2].v;
       	for(step=0; step<steps_ps; step++){
       		t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
       		for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*loop over neurons*/
+						if(nrnp != nrn){
+							nrnp->myLastV = nrnp->v;
+							double srcLastV = nrn[(nrnp->source)].myLastV;
+							double srcCurrV = nrn[(nrnp->source)].v;
+							if(srcLastV <= 0 && srcCurrV > 0){
+								nrnp->g_ampa = nrnp->g_ampa + 5;
+							}
+						}
             fp[99] = dt_full;
             flag = tm_ps(yp,co,yold,ynew,nrnp,fp,dt_full,order_lim);
     		  } /* end loop over neurons*/
@@ -364,23 +385,43 @@ int main(int argc, char *argv[]) {
   	  fp[11] = 0.1; //size of time step for PS - was 0.1
 
   	  double* ps_v = malloc(simTime * 1 * sizeof(double));
+			double* ps_v2 = malloc(simTime * 1 * sizeof(double));
+			double* ps_v3 = malloc(simTime * 1 * sizeof(double));
   	  double* rk_v = malloc(simTime * 1 * sizeof(double));
   	  double* bs_v = malloc(simTime * 1 * sizeof(double));
   	  double* t_cpu = malloc(3 * 1 * sizeof(double));
 
 
-  run_sim(ps_v,rk_v,bs_v,t_cpu,fp,ip);
+  run_sim(ps_v,ps_v2,ps_v3,rk_v,bs_v,t_cpu,fp,ip);
   if(plot == 0){
     if(algo == 3){
 
       FILE *ps;
-      char name1[] = "ps.txt";
+      char *name1 = "ps.txt";
      // strcat(dir, name1);
       ps = fopen(name1, "w");
       for(int i = 0;i < simTime; i++){
     		fprintf(ps,"%.1f\n", ps_v[i]);
       }
 			fclose(ps);
+
+			FILE *ps2;
+			name1 = "ps2.txt";
+		 // strcat(dir, name1);
+			ps2 = fopen(name1, "w");
+			for(int i = 0;i < simTime; i++){
+				fprintf(ps2,"%.1f\n", ps_v2[i]);
+			}
+			fclose(ps2);
+
+			FILE *ps3;
+			name1 = "ps3.txt";
+		 // strcat(dir, name1);
+			ps3 = fopen(name1, "w");
+			for(int i = 0;i < simTime; i++){
+				fprintf(ps3,"%.1f\n", ps_v3[i]);
+			}
+			fclose(ps3);
     }
 
     if(algo == 1){

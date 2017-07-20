@@ -23,8 +23,10 @@ typedef struct {
 	double I;
 	double g_ampa;
 	double g_gaba;
+	int source;
+	double myLastV;
 	uint32 n_out;
-} neuron_tm; 
+} neuron_tm;
 
 void tm_derivs(double *, double *, double *);
 void tm_first(double **, double **, double *);

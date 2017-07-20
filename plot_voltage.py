@@ -20,19 +20,27 @@ from matplotlib import pyplot
 from pylab import *
 from numpy import *
 filename = sys.argv[1] # Assumes filename is passed as a command-line argument
+filename1 = filename + ".txt"
+filename2 = filename + "2.txt"
+filename3 = filename + "3.txt"
 #directory = os.environ.get('PFSDIR')
 #filename = directory + '/' + filename
-data = loadtxt(filename, unpack=True)
+data1 = loadtxt(filename1, unpack=True)
+data2 = loadtxt(filename2, unpack=True)
+data3 = loadtxt(filename3, unpack=True)
 #x = data[0]
 #m = mean(data[1:,:], axis=0)
 #s = std(data[1:,:], axis=0)
-pyplot.figure()
+#pyplot.figure()
 #pyplot.errorbar(x, m, yerr=s) # Plot lines
-pyplot.plot(data, "-") # Plot markers
+f, (ax1, ax2, ax3) = plt.subplots(3, sharex=True, sharey=True)
+ax1.plot(data1, "-") # Plot markers
+ax2.plot(data2, "-")
+ax3.plot(data3, "-")
 #pyplot.plot(data, ".")
 #xlim((min(x) - 1, max(x) + 1)) # Adjust x-axis limits
 xlabel('Time(ms)')
 ylabel('Voltage(mV)')
-filename = filename.replace(".txt","")
 title(filename)
 savefig(filename + '.png')
+plt.show()
