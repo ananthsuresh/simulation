@@ -193,10 +193,10 @@ void run_sim(double *ps_v,double *ps_v2,double *ps_v3,double *rk_v,double *bs_v,
     	}
       c0 = (double)clock();
       for(t_ms=0,t=0; t_ms<t_end; t_ms++){
-				ps_v[t_ms] = nrn[0].v;  //change 0 to index of neuron to be saved
-				ps_v2[t_ms] = nrn[1].v;
-				ps_v3[t_ms] = nrn[2].v;
       	for(step=0; step<steps_ps; step++){
+					ps_v[(t_ms * 10) + step] = nrn[0].v;  //change 0 to index of neuron to be saved
+					ps_v2[(t_ms * 10) + step] = nrn[1].v;
+					ps_v3[(t_ms * 10) + step] = nrn[2].v;
       		t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
       		for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*loop over neurons*/
 						if(nrnp != nrn){
@@ -384,9 +384,9 @@ int main(int argc, char *argv[]) {
   	  fp[10] = 0.01;// size of RK time step?
   	  fp[11] = 0.1; //size of time step for PS - was 0.1
 
-  	  double* ps_v = malloc(simTime * 1 * sizeof(double));
-			double* ps_v2 = malloc(simTime * 1 * sizeof(double));
-			double* ps_v3 = malloc(simTime * 1 * sizeof(double));
+  	  double* ps_v = malloc(simTime * 10 * sizeof(double));
+			double* ps_v2 = malloc(simTime * 10 * sizeof(double));
+			double* ps_v3 = malloc(simTime * 10 * sizeof(double));
   	  double* rk_v = malloc(simTime * 1 * sizeof(double));
   	  double* bs_v = malloc(simTime * 1 * sizeof(double));
   	  double* t_cpu = malloc(3 * 1 * sizeof(double));
@@ -400,7 +400,7 @@ int main(int argc, char *argv[]) {
       char *name1 = "ps.txt";
      // strcat(dir, name1);
       ps = fopen(name1, "w");
-      for(int i = 0;i < simTime; i++){
+      for(int i = 2200;i < 3000; i++){//supposed to be i = 0, i < simTime * 10
     		fprintf(ps,"%.1f\n", ps_v[i]);
       }
 			fclose(ps);
@@ -409,7 +409,7 @@ int main(int argc, char *argv[]) {
 			name1 = "ps2.txt";
 		 // strcat(dir, name1);
 			ps2 = fopen(name1, "w");
-			for(int i = 0;i < simTime; i++){
+			for(int i = 2200;i < 3000; i++){
 				fprintf(ps2,"%.1f\n", ps_v2[i]);
 			}
 			fclose(ps2);
@@ -418,7 +418,7 @@ int main(int argc, char *argv[]) {
 			name1 = "ps3.txt";
 		 // strcat(dir, name1);
 			ps3 = fopen(name1, "w");
-			for(int i = 0;i < simTime; i++){
+			for(int i = 2200;i < 3000; i++){
 				fprintf(ps3,"%.1f\n", ps_v3[i]);
 			}
 			fclose(ps3);
