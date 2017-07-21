@@ -20,7 +20,7 @@ from matplotlib import pyplot
 from pylab import *
 from numpy import *
 filename = sys.argv[1] # Assumes filename is passed as a command-line argument
-filename1 = filename + ".txt"
+filename1 = filename + "1.txt"
 filename2 = filename + "2.txt"
 filename3 = filename + "3.txt"
 #directory = os.environ.get('PFSDIR')
