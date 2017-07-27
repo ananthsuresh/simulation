@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include "tm_util.h"
 #include "integ_util.h"
+#include "mpi.h"
 
 
 #define NV 25
@@ -110,6 +111,11 @@ int tm_ps(double **yp,double **co,double *yold,double *ynew,neuron_tm *nrnp,doub
 
 /***********************************************************/
 void run_sim(double *nrnv_1,double *nrnv_2,double *nrnv_3,double *t_cpu,double *fp_in,int *ip_in){
+	int my_rank;
+	int world_size;
+	MPI_Comm_size(MPI_COMM_WORLD, &world_size);   // get number of processes
+	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);      // get process rank
+	int chunkSize = numNeurons / world_size;
   int syn_seed=ip_in[0],sim_type=ip_in[1],t_end=ip_in[2];
   int in_seed=ip_in[3],ps_only=ip_in[4],n_nrn=ip_in[5],order_lim=ip_in[99];
   double tol=fp_in[9], dt_rk=fp_in[10], dt_ps=fp_in[11];
@@ -158,7 +164,9 @@ void run_sim(double *nrnv_1,double *nrnv_2,double *nrnv_3,double *t_cpu,double *
 	co[4][0] = co_g_ampa_ps; co[5][0] = co_g_gaba_ps;
   co[6][0] = co_a; co[7][0] = co_b;	co[8][0] = co_c;
   co[10][0] = co_e; co[11][0] = co_f; co[12][0] = co_g;
-
+	int crossThreshold = 0;
+	int tag = 777;
+	MPI_Request request;
   if(algo == 3){
 			int index = 0;
       /************************************************************/
@@ -174,10 +182,12 @@ void run_sim(double *nrnv_1,double *nrnv_2,double *nrnv_3,double *t_cpu,double *
 				nrnp->myLastV=fp_in[0];
 				if(index == 0){
 					nrnp->source = n_nrn - 1;
+					nrnp->target = index + 1;
 					nrnp->I = fp_in[8];
 				}
 				else{
 					nrnp->source = index - 1;
+					nrnp->target = index + 1;
 					nrnp->I = 0;
 				}
 				//printf("Neuron %d's source is %d \n", index, nrnp->source);
@@ -199,16 +209,23 @@ void run_sim(double *nrnv_1,double *nrnv_2,double *nrnv_3,double *t_cpu,double *
 					nrnv_3[(t_ms * 10) + step] = nrn[2].v;
       		t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
       		for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*loop over neurons*/
+						nrnp->myLastV = nrnp->v;
 						if(nrnp != nrn){
-							nrnp->myLastV = nrnp->v;
-							double srcLastV = nrn[(nrnp->source)].myLastV;
-							double srcCurrV = nrn[(nrnp->source)].v;
-							if(srcLastV <= 0 && srcCurrV > 0){
-								nrnp->g_ampa = nrnp->g_ampa + 5;
+							if(step == 0 && t_ms == 0 && t == 0){
+								int sourceProc = (nrnp->source) % chunkSize;
+								MPI_IRecv(crossThreshold, 1, MPI_INT, sourceProc, tag, MPI_COMM_WORLD, &request);
+							}
+							if(crossThreshold == 1){
+								
 							}
 						}
             fp[99] = dt_full;
             flag = tm_ps(yp,co,yold,ynew,nrnp,fp,dt_full,order_lim);
+						if(nrnp->myLastV <=0 && nrnp->v >0){
+							crossThreshold = 1;
+							int targetProc = (nrnp->target) % chunkSize;
+							MPI_Send(&crossThreshold, 1, MPI_INT, targetProc, tag, MPI_COMM_WORLD);
+						}
     		  } /* end loop over neurons*/
     		  t=t_next;
       	} /*loop over steps*/
@@ -346,11 +363,19 @@ void run_sim(double *nrnv_1,double *nrnv_2,double *nrnv_3,double *t_cpu,double *
 	 for(i=0;i<NV;i++){free(yp[i]); free(co[i]);} free(yp); free(co);
 }
 int main(int argc, char *argv[]) {
-   //char dir[100];
-   //char *cwd;
-   // cwd = getcwd(0,0);
-   // printf("%s\n", cwd);
-  // sprintf(dir, "%s", getenv("PFSDIR"));
+
+
+		double dt;
+		int t_end;
+		double* fp;
+		int* ip;
+		double* nrnv_1;
+		double* nrnv_2;
+		double* nrnv_3;
+		double* t_cpu;
+		MPI_Init(&argc, &argv);                       // Initialize MPI
+
+		//for getopt
     int c = 0;
 
 
@@ -399,12 +424,11 @@ int main(int argc, char *argv[]) {
     }
     argc -= optind;
     argv += optind;
-      double dt;
-  	  int t_end;
+
 
       //calloc initializes all values to 0
-  	  double* fp = (double*)calloc(100, sizeof(double));
-  	  int* ip = (int*)calloc(100, sizeof(int));
+  	  fp = (double*)calloc(100, sizeof(double));
+  	  ip = (int*)calloc(100, sizeof(int));
 
   	  ip[0] = 1;
   	  ip[2] = simTime;//Time simulation is run
@@ -433,10 +457,10 @@ int main(int argc, char *argv[]) {
 				numSteps = floor((1.0/fp[11])+0.5);
 			}
 
-			double* nrnv_1 = malloc(simTime * numSteps * sizeof(double));
-			double* nrnv_2 = malloc(simTime * numSteps * sizeof(double));
-			double* nrnv_3 = malloc(simTime * numSteps * sizeof(double));
-  	  double* t_cpu = malloc(3 * 1 * sizeof(double));
+			nrnv_1 = malloc(simTime * numSteps * sizeof(double));
+			nrnv_2 = malloc(simTime * numSteps * sizeof(double));
+			nrnv_3 = malloc(simTime * numSteps * sizeof(double));
+  	  t_cpu = malloc(3 * 1 * sizeof(double));
 
 
   run_sim(nrnv_1,nrnv_2,nrnv_3,t_cpu,fp,ip);
@@ -471,4 +495,6 @@ int main(int argc, char *argv[]) {
 	free(nrnv_2);
 	free(nrnv_3);
 	free(t_cpu);
+	MPI_Finalize();
+	return 0;
 }

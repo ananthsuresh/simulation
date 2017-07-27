@@ -24,6 +24,7 @@ typedef struct {
 	double g_ampa;
 	double g_gaba;
 	int source;
+	int target;
 	double myLastV;
 	uint32 n_out;
 } neuron_tm;
