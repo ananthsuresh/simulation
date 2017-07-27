@@ -216,7 +216,7 @@ void run_sim(double *nrnv_1,double *nrnv_2,double *nrnv_3,double *t_cpu,double *
 								MPI_IRecv(crossThreshold, 1, MPI_INT, sourceProc, tag, MPI_COMM_WORLD, &request);
 							}
 							if(crossThreshold == 1){
-								
+								nrnp->g_ampa = nrnp->g_ampa + 5;
 							}
 						}
             fp[99] = dt_full;
