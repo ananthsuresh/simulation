@@ -26,6 +26,7 @@ typedef struct {
 	int source;
 	int target;
 	double myLastV;
+	int myIndex;
 	uint32 n_out;
 } neuron_tm;
 

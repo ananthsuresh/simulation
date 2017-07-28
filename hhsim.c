@@ -163,8 +163,10 @@ void run_sim(double *nrnv_1,double *nrnv_2,double *nrnv_3,double *t_cpu,double *
 	co[4][0] = co_g_ampa_ps; co[5][0] = co_g_gaba_ps;
   co[6][0] = co_a; co[7][0] = co_b;	co[8][0] = co_c;
   co[10][0] = co_e; co[11][0] = co_f; co[12][0] = co_g;
-	MPI_Request request;
+	MPI_Status status;
 	int crossThreshold = 0;
+	int *commFlags;
+	commFlags = malloc(n_nrn * sizeof(int));
   if(algo == 3){
 			int index = 0;
       /************************************************************/
@@ -177,7 +179,7 @@ void run_sim(double *nrnv_1,double *nrnv_2,double *nrnv_3,double *t_cpu,double *
     		nrnp->h = fp_in[3];	nrnp->a = fp_in[4];	nrnp->b = fp_in[5];
     		nrnp->c = fp_in[6];	nrnp->d = fp_in[7];	//nrnp->I = fp_in[8];
     		nrnp->g_ampa = 0.0; nrnp->g_gaba = 0.0;
-				nrnp->myLastV=fp_in[0];
+				nrnp->myLastV=fp_in[0]; nrnp->myIndex = index;
 				if(index == 0){
 					nrnp->source = n_nrn - 1;
 					nrnp->target = index + 1;
@@ -214,18 +216,20 @@ void run_sim(double *nrnv_1,double *nrnv_2,double *nrnv_3,double *t_cpu,double *
       		t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
       		for(nrnp = START(nrn); nrnp < nrnx; nrnp++){ /*loop over neurons*/
 						nrnp->myLastV = nrnp->v;
-						int sourceProc = (nrnp->source) % chunkSize;
-						if(nrnp != nrn && step == 0 && t_ms == 0 && t == 0){
-							MPI_Irecv(&crossThreshold, 1, MPI_INT, sourceProc, tag, MPI_COMM_WORLD, &request);
+						int sourceProc = (nrnp->source) / chunkSize;
+						if(nrnp != nrn){
+							MPI_Iprobe(sourceProc,nrnp->source, MPI_COMM_WORLD,commFlags +(nrnp->myIndex),&status);
 						}
-						if(crossThreshold == 1){
+						if(commFlags[nrnp->myIndex] == 1){
 							nrnp->g_ampa = nrnp->g_ampa + 5;
+							MPI_Recv(&crossThreshold, 1, MPI_INT, sourceProc, nrnp->source, MPI_COMM_WORLD, &status);
+							//commFlags[nrnp->myIndex] = 0;
 						}
             fp[99] = dt_full;
             flag = tm_ps(yp,co,yold,ynew,nrnp,fp,dt_full,order_lim);
-						if(nrnp->myLastV <=0 && nrnp->v >0){
-							int targetProc = (nrnp->target) % chunkSize;
-							MPI_Send(&crossThreshold, 1, MPI_INT, targetProc, tag, MPI_COMM_WORLD);
+						if(nrnp->myLastV <=0 && nrnp->v >0 && nrnp != (nrn + n_nrn - 1)){
+							int targetProc = (nrnp->target) / chunkSize;
+							MPI_Send(&crossThreshold, 1, MPI_INT, targetProc, nrnp->myIndex, MPI_COMM_WORLD);
 						}
     		  } /* end loop over neurons*/
 					MPI_Barrier(MPI_COMM_WORLD);
