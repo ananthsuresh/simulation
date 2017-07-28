@@ -199,8 +199,8 @@ void run_sim(double *nrnv_1,double *nrnv_2,double *nrnv_3,double *t_cpu,double *
 					nrnv_3[(t_ms * 10) + step] = nrn[2].v;
       		t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
       		for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*loop over neurons*/
+						nrnp->myLastV = nrnp->v;
 						if(nrnp != nrn){
-							nrnp->myLastV = nrnp->v;
 							double srcLastV = nrn[(nrnp->source)].myLastV;
 							double srcCurrV = nrn[(nrnp->source)].v;
 							if(srcLastV <= 0 && srcCurrV > 0){
