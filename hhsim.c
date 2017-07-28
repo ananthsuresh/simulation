@@ -19,6 +19,8 @@
 
 
 #define NV 25
+#define START(nrn) nrn + (procnum * (n_nrn/numprocs))
+#define END(nrn) nrn + ((procnum + 1)* (n_nrn/numprocs))
 int numNeurons = 10;
 int simTime = 1000;
 int plot = 0;
@@ -110,12 +112,9 @@ int tm_ps(double **yp,double **co,double *yold,double *ynew,neuron_tm *nrnp,doub
 }
 
 /***********************************************************/
-void run_sim(double *nrnv_1,double *nrnv_2,double *nrnv_3,double *t_cpu,double *fp_in,int *ip_in){
-	int my_rank;
-	int world_size;
-	MPI_Comm_size(MPI_COMM_WORLD, &world_size);   // get number of processes
-	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);      // get process rank
-	int chunkSize = numNeurons / world_size;
+void run_sim(double *nrnv_1,double *nrnv_2,double *nrnv_3,double *t_cpu,double *fp_in,int *ip_in,int procnum, int numprocs){
+
+	int chunkSize = numNeurons / numprocs;
   int syn_seed=ip_in[0],sim_type=ip_in[1],t_end=ip_in[2];
   int in_seed=ip_in[3],ps_only=ip_in[4],n_nrn=ip_in[5],order_lim=ip_in[99];
   double tol=fp_in[9], dt_rk=fp_in[10], dt_ps=fp_in[11];
@@ -149,7 +148,7 @@ void run_sim(double *nrnv_1,double *nrnv_2,double *nrnv_3,double *t_cpu,double *
 		yp[i] = malloc((order_lim+1)*sizeof(double));
 		co[i] = malloc((order_lim+1)*sizeof(double));
 	}
-  nrn = malloc(n_nrn*sizeof(neuron_tm)); nrnx = nrn+n_nrn;
+  nrn = malloc(n_nrn*sizeof(neuron_tm)); nrnx = END(nrn);
 
   /*Store constant parameters*/
 	ip[0]=sim_type; fp[17] = tol;
@@ -164,9 +163,8 @@ void run_sim(double *nrnv_1,double *nrnv_2,double *nrnv_3,double *t_cpu,double *
 	co[4][0] = co_g_ampa_ps; co[5][0] = co_g_gaba_ps;
   co[6][0] = co_a; co[7][0] = co_b;	co[8][0] = co_c;
   co[10][0] = co_e; co[11][0] = co_f; co[12][0] = co_g;
-	int crossThreshold = 0;
-	int tag = 777;
 	MPI_Request request;
+	int crossThreshold = 0;
   if(algo == 3){
 			int index = 0;
       /************************************************************/
@@ -201,45 +199,54 @@ void run_sim(double *nrnv_1,double *nrnv_2,double *nrnv_3,double *t_cpu,double *
       	co[6][p] = co[6][0]*cp; co[7][p] = co[7][0]*cp;	co[8][p] = co[8][0]*cp;
       	co[10][p] = co[10][0]*cp; co[11][p] = co[11][0]*cp; co[12][p] = co[12][0]*cp;
     	}
-      c0 = (double)clock();
+      c0 = MPI_Wtime();
       for(t_ms=0,t=0; t_ms<t_end; t_ms++){
       	for(step=0; step<steps_ps; step++){
-					nrnv_1[(t_ms * 10) + step] = nrn[0].v;  //change 0 to index of neuron to be saved
-					nrnv_2[(t_ms * 10) + step] = nrn[1].v;
-					nrnv_3[(t_ms * 10) + step] = nrn[2].v;
+					if(procnum == 0){
+						nrnv_1[(t_ms * 10) + step] = nrn[0].v;  //change 0 to index of neuron to be saved
+					}
+					if(procnum == 1){
+						nrnv_2[(t_ms * 10) + step] = nrn[1].v;
+					}
+					if(procnum == 2){
+						nrnv_3[(t_ms * 10) + step] = nrn[2].v;
+					}
       		t_next = (double)t_ms + (step+1)*dt;/*end of current time step*/
-      		for(nrnp = nrn; nrnp < nrnx; nrnp++){ /*loop over neurons*/
+      		for(nrnp = START(nrn); nrnp < nrnx; nrnp++){ /*loop over neurons*/
 						nrnp->myLastV = nrnp->v;
-						if(nrnp != nrn){
-							if(step == 0 && t_ms == 0 && t == 0){
-								int sourceProc = (nrnp->source) % chunkSize;
-								MPI_IRecv(crossThreshold, 1, MPI_INT, sourceProc, tag, MPI_COMM_WORLD, &request);
-							}
-							if(crossThreshold == 1){
-								nrnp->g_ampa = nrnp->g_ampa + 5;
-							}
+						int sourceProc = (nrnp->source) % chunkSize;
+						if(nrnp != nrn && step == 0 && t_ms == 0 && t == 0){
+							MPI_Irecv(&crossThreshold, 1, MPI_INT, sourceProc, tag, MPI_COMM_WORLD, &request);
+						}
+						if(crossThreshold == 1){
+							nrnp->g_ampa = nrnp->g_ampa + 5;
 						}
             fp[99] = dt_full;
             flag = tm_ps(yp,co,yold,ynew,nrnp,fp,dt_full,order_lim);
 						if(nrnp->myLastV <=0 && nrnp->v >0){
-							crossThreshold = 1;
 							int targetProc = (nrnp->target) % chunkSize;
 							MPI_Send(&crossThreshold, 1, MPI_INT, targetProc, tag, MPI_COMM_WORLD);
 						}
     		  } /* end loop over neurons*/
+					MPI_Barrier(MPI_COMM_WORLD);
     		  t=t_next;
       	} /*loop over steps*/
       } /*loop over t_ms*/
-      c1 = (double)clock();
-      t_cpu[0] = (double)(c1 - c0)/(CLOCKS_PER_SEC);
+      c1 = MPI_Wtime();
+			double proctime = c1 - c0;
+			double maxtime;
+			MPI_Allreduce(&proctime, &maxtime, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+      t_cpu[0] = maxtime;
       printf("Time = %5.2f. \n",t_cpu[0]); fflush(stdout);
-      if(plot == 1){
-        FILE *pstime;
-        char timeName3[] = "pstime.txt";
-        pstime = fopen(timeName3, "ab+");
-        fprintf(pstime,"%d %5.2f\n", numNeurons, t_cpu[0]);
-				fclose(pstime);
-      }
+			if(procnum == 0){
+	      if(plot == 1){
+	        FILE *pstime;
+	        char timeName3[] = "pstime.txt";
+	        pstime = fopen(timeName3, "ab+");
+	        fprintf(pstime,"%d %5.2f\n", numNeurons, t_cpu[0]);
+					fclose(pstime);
+	      }
+			}
   }
 
   if(algo == 2){
@@ -373,7 +380,11 @@ int main(int argc, char *argv[]) {
 		double* nrnv_2;
 		double* nrnv_3;
 		double* t_cpu;
+		int my_rank;
+		int world_size;
 		MPI_Init(&argc, &argv);                       // Initialize MPI
+		MPI_Comm_size(MPI_COMM_WORLD, &world_size);   // get number of processes
+		MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);      // get process rank
 
 		//for getopt
     int c = 0;
@@ -463,31 +474,37 @@ int main(int argc, char *argv[]) {
   	  t_cpu = malloc(3 * 1 * sizeof(double));
 
 
-  run_sim(nrnv_1,nrnv_2,nrnv_3,t_cpu,fp,ip);
+  run_sim(nrnv_1,nrnv_2,nrnv_3,t_cpu,fp,ip,my_rank, world_size);
   if(plot == 0){
-    FILE *voltage1;
-    char *filename = "voltage1.txt";
-    voltage1 = fopen(filename, "w");
-    for(int i = 0;i < simTime * numSteps; i++){ //int i = 0;i < simTime * numSteps
-  		fprintf(voltage1,"%.1f\n", nrnv_1[i]);
-    }
-		fclose(voltage1);
-
-		FILE *voltage2;
-		filename = "voltage2.txt";
-		voltage2 = fopen(filename, "w");
-		for(int i = 0;i < simTime * numSteps; i++){
-			fprintf(voltage2,"%.1f\n", nrnv_2[i]);
+		if(my_rank == 0){
+	    FILE *voltage1;
+	    char *filename = "voltage1.txt";
+	    voltage1 = fopen(filename, "w");
+	    for(int i = 0;i < simTime * numSteps; i++){ //int i = 0;i < simTime * numSteps
+	  		fprintf(voltage1,"%.1f\n", nrnv_1[i]);
+	    }
+			fclose(voltage1);
 		}
-		fclose(voltage2);
 
-		FILE *voltage3;
-		filename = "voltage3.txt";
-		voltage3 = fopen(filename, "w");
-		for(int i = 0;i < simTime * numSteps; i++){
-			fprintf(voltage3,"%.1f\n", nrnv_3[i]);
+		if(my_rank == 1){
+			FILE *voltage2;
+			char *filename = "voltage2.txt";
+			voltage2 = fopen(filename, "w");
+			for(int i = 0;i < simTime * numSteps; i++){
+				fprintf(voltage2,"%.1f\n", nrnv_2[i]);
+			}
+			fclose(voltage2);
 		}
-		fclose(voltage3);
+
+		if(my_rank == 2){
+			FILE *voltage3;
+			char *filename = "voltage3.txt";
+			voltage3 = fopen(filename, "w");
+			for(int i = 0;i < simTime * numSteps; i++){
+				fprintf(voltage3,"%.1f\n", nrnv_3[i]);
+			}
+			fclose(voltage3);
+		}
   }
 	free(fp);
 	free(ip);
